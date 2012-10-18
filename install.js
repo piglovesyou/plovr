@@ -77,6 +77,13 @@ function fetchIt() {
     function onEnd() {
         console.log("Recieved " + Math.floor(count / 1024) + "K total.");
         fs.closeSync(outFile);
+
+        // In practice, when running detached from a console, at least
+        // some versions of Node will fail to spontaneously exit after
+        // the event stream has been fully consumed. It is unclear
+        // quite what's going wrong, but explicitly exiting at least
+        // papers over the issue.
+        process.exit(0);
     }
 }
 
