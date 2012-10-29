@@ -21,7 +21,7 @@ var url  = require("url");
  */
 
 var PLOVR_BASE_URL = "http://plovr.googlecode.com/files/";
-var PLOVR_VERSION = "4b3caf2b7d84";
+var PLOVR_VERSION = "eba786b34df9";
 
 var FULL_URL = PLOVR_BASE_URL + "plovr-" + PLOVR_VERSION + ".jar";
 var OUTPUT_FILE = __dirname + "/lib/plovr.jar";
