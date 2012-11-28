@@ -20,8 +20,6 @@
  * include their own deps file(s) from different locations.
  *
  * @author arv@google.com (Erik Arvidsson)
- *
- * @provideGoog
  */
 
 
