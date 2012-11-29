@@ -20,8 +20,8 @@ var pattern = '{**/*.css,**/*.data,**/*.gif,**/*.html,**/*.png,**/*.py,**/*_test
 glob(pattern, {cwd: cwd}, function (er, files) {
   files.forEach(deleteFile)
   console.log('>', files.length, 'files removed.')
+  process.exit(0)
 })
-
 
 /**
  * Deletes a file, if we're pretty certain we're in a node_modules directory.
