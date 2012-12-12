@@ -16,7 +16,7 @@ if (!deleteFiles) {
   console.log('This doesn\'t look like an NPM install, dry run only no files will be deleted.')
 }
 
-var pattern = '{**/*.css,**/*.data,**/*.gif,**/*.html,**/*.png,**/*.py,**/*_test.js}'
+var pattern = '{**/*.css,**/*.data,**/*.gif,**/*.html,**/*.png,**/*.py,**/*_test.js,**/.*}'
 glob(pattern, {cwd: cwd}, function (er, files) {
   files.forEach(deleteFile)
   console.log('>', files.length, 'files removed.')
