@@ -1,6 +1,6 @@
 {
   "name" : "closure-library",
-  "version" : "2325.0.0",
+  "version" : "2325.0.1",
   "description" : "Fork of closure-library that allows installation via NPM.",
   "keywords" : ["javascript", "library", "google", "closure"],
   "repository" : {
