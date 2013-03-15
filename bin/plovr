@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 # Set prog to be the full path of the script that's running, including
 # following symlinks. Set progDir to be its directory. Set progName
 # to be its simple (file) name.
@@ -39,5 +37,7 @@ prog="${progDir}/${progName}"
 cd "${origDir}"
 origDir=
 newProg=
+
+set -x
 
 exec java "$javaType" -Xmx4096m -jar "${progDir}/../lib/plovr.jar" "$@"
