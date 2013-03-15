@@ -1,10 +1,19 @@
 #!/bin/bash
 
+set -x
+
 # Set prog to be the full path of the script that's running, including
 # following symlinks. Set progDir to be its directory. Set progName
 # to be its simple (file) name.
 origDir="${PWD}"
 prog="$0"
+
+javaType="-server"
+if [ "$1" = "-client" ] || [ "$1" = "-server" ]; then
+  javaType="$1"
+  shift
+fi
+
 while [ -h "${prog}" ]; do
     newProg="$(/bin/ls -ld "${prog}")"
     newProg="$(expr "x${newProg}" : 'x.* -> \(.*\)$')"
@@ -24,4 +33,4 @@ cd "${origDir}"
 origDir=
 newProg=
 
-exec java -Xmx4096m -jar "${progDir}/../lib/plovr.jar" "$@"
+exec java "$javaType" -Xmx4096m -jar "${progDir}/../lib/plovr.jar" "$@"
