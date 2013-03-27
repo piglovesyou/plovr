@@ -3,36 +3,40 @@ plovr
 
 An npm wrapper for [Plovr](http://plovr.com/), the Closure (JS compiler) build tool.
 
-Building and Installing
+Installing
 -----------------------
 
 ```shell
 npm install plovr
 ```
 
-Or grab the source and
-
-```shell
-node ./install.js
-```
-
 What this is really doing is just grabbing a particular "blessed" (by
-this module) version of Plovr. As new versions of Plovr are released
-and vetted, this module will be updated accordingly.
-
-Running
--------
-
-```shell
-bin/plovr [plovr arguments]
-```
-
-And npm will install a link to the binary in `node_modules/.bin` as
-it is wont to do.
+this module) Plovr that we built from the Obvious repos.
 
 Note that Plovr requires a Java runtime to operate. It specifically
 assumes that there is a binary called `java` in the `$PATH` and will
 undoubtedly fail spectacularly if that's not the case.
+
+Building your own
+-------
+
+You will need:
+- Apache Ant
+- JDK7
+
+Your environment will need to be set up such that
+- `javac`, `java`, and `ant` are on your path
+- JAVA7_HOME is set to the java /home directory (usually you can get this as `JAVA7_HOME="$(/usr/libexec/java_home)"`
+
+Then you need to run
+```
+git clone git@github.com:Obvious/plovr
+cd plovr/package
+npm install .
+cd ..
+ant jar
+cp build/plovr.jar package/bin/
+```
 
 Contributing
 ------------
@@ -46,8 +50,7 @@ best. Even better, make them in the form of pull requests.
 Author
 ------
 
-[Dan Bornstein](https://github.com/danfuzz)
-([personal website](http://www.milk.com/)), supported by
+@nicks, supported by
 [The Obvious Corporation](http://obvious.com/).
 
 License
@@ -56,5 +59,4 @@ License
 Copyright 2012 [The Obvious Corporation](http://obvious.com/).
 
 Licensed under the Apache License, Version 2.0. 
-See the top-level file `LICENSE.txt` and
 (http://www.apache.org/licenses/LICENSE-2.0).

@@ -40,4 +40,4 @@ newProg=
 
 set -x
 
-exec java "$javaType" -Xmx4096m -jar "${progDir}/../lib/plovr.jar" "$@"
+exec java "$javaType" -Xmx4096m -jar "${progDir}/plovr.jar" "$@"
