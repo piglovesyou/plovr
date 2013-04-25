@@ -49,7 +49,7 @@ public class ManifestTest {
 
   @Test
   public void testSimpleManifest() throws CompilationException {
-    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
 
@@ -100,7 +100,7 @@ public class ManifestTest {
 
   @Test
   public void testCompilationOrder() throws CompilationException {
-    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();
