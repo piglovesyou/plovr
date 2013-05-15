@@ -3,7 +3,7 @@
   "paths": [
     "main",
     "custom",
-    "../../package/node_modules/closure-templates/javascript/soyutils_usegoog.js"
+    "../../package/node_modules/closure-templates-src/javascript/soyutils_usegoog.js"
   ],
   "inputs": "main.js",
 
