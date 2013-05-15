@@ -194,6 +194,22 @@ goog.async.Deferred = function(opt_onCancelFunction, opt_defaultScope) {
 
 
 /**
+ * Save a reference to the setTimeout method, so that it doesn't get
+ * wiped out by mock clocks.
+ * @private {!Function}
+ */
+goog.async.Deferred.setTimeout_ = goog.global.setTimeout;
+
+
+/**
+ * Save a reference to the clearTimeout method, so that it doesn't get
+ * wiped out by mock clocks.
+ * @private {!Function}
+ */
+goog.async.Deferred.clearTimeout_ = goog.global.clearTimeout;
+
+
+/**
  * @define {boolean} Whether unhandled errors should always get rethrown to the
  * global scope. Defaults to the value of goog.DEBUG.
  */
@@ -847,7 +863,7 @@ goog.async.Deferred.CanceledError.prototype.name = 'CanceledError';
  */
 goog.async.Deferred.Error_ = function(error) {
   /** @const @private {number} */
-  this.id_ = goog.global.setTimeout(goog.bind(this.throwError, this), 0);
+  this.id_ = goog.async.Deferred.setTimeout_.call(goog.global, goog.bind(this.throwError, this), 0);
 
   /** @const @private {*} */
   this.error_ = error;
@@ -870,7 +886,7 @@ goog.async.Deferred.Error_.prototype.throwError = function() {
  * Resets the error throw timer.
  */
 goog.async.Deferred.Error_.prototype.resetTimer = function() {
-  goog.global.clearTimeout(this.id_);
+  goog.async.Deferred.clearTimeout_.call(goog.global, this.id_);
 };
 
 
