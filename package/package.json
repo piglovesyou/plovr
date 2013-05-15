@@ -1,0 +1,38 @@
+{
+    "name": "plovr",
+    "version": "0.3.1",
+    "keywords":
+        ["javascript", "compiler", "closure", "build"],
+    "description":
+        "Build tool that uses the Closure JavaScript compiler",
+    "homepage": "https://github.com/Obvious/plovr",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Obvious/plovr.git"
+    },
+    "licenses": [ {
+        "type": "Apache 2.0",
+        "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    } ],
+    "author": {
+        "name": "Nick Santos",
+        "email": "nick@medium.com"
+    },
+
+    "bin": {
+        "plovr": "./bin/plovr"
+    },
+    "files": [
+        "bin"
+    ],
+    "engine": {
+        "node": "*"
+    },
+    "preferGlobal": true,
+
+    "devDependencies": {
+        "closure-compiler": "git+ssh://git@github.com:Obvious/closure-compiler.git",
+        "closure-library": "git+ssh://git@github.com:Obvious/closure-library.git",
+        "closure-templates-src": "git+ssh://git@github.com:Obvious/closure-templates.git"
+    }
+}
