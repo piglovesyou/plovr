@@ -33,7 +33,9 @@ Then you need to run
 git clone git@github.com:Obvious/plovr
 cd plovr/package
 npm install .
-cd ..
+cd node_modules
+ln -s obvious-closure-library node_modules
+cd ../..
 ant jar
 cp build/plovr.jar package/bin/
 ```
