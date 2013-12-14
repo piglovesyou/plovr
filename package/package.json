@@ -1,6 +1,6 @@
 {
     "name": "plovr",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "keywords":
         ["javascript", "compiler", "closure", "build"],
     "description":
@@ -31,8 +31,9 @@
     "preferGlobal": true,
 
     "devDependencies": {
-        "closure-compiler": "git+ssh://git@github.com:Obvious/closure-compiler.git#v20130912",
+        "closure-compiler": "git+ssh://git@github.com:Obvious/closure-compiler.git#v20131213.0.0",
         "closure-templates-src": "git+ssh://git@github.com:Obvious/closure-templates.git#v20130326",
-        "obvious-closure-library": "git+ssh://git@github.com:Obvious/closure-library.git#v20130912.0.1"
+        "obvious-closure-library": "git+ssh://git@github.com:Obvious/closure-library.git#v20131213.0.0",
+        "closure-stylesheets": "git+ssh://git@github.com:Obvious/closure-stylesheets.git#v20131213.0.0"
     }
 }

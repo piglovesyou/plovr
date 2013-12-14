@@ -3,3 +3,5 @@ build/
 
 /buck-out/
 /.nobuckcheck
+
+package/node_modules

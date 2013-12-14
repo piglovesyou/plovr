@@ -17,7 +17,7 @@
   <property name="build.dir.www.jsdoc" value="${build.dir.www}/jsdoc" />
   <property name="javadoc.dir" value="${build.dir.www}/javadoc" />
 
-  <property name="closure.dir" value="${basedir}/closure" />
+  <property name="closure.dir" value="package/node_modules" />
   <property name="closure-compiler.dir" value="${closure.dir}/closure-compiler" />
   <property name="closure-library.dir" value="${closure.dir}/closure-library" />
   <property name="closure-stylesheets.dir" value="${closure.dir}/closure-stylesheets" />
@@ -112,7 +112,6 @@
            includeantruntime="true"
            encoding="UTF-8"
            >
-      <compilerarg value="-Werror"/>
       <src path="${src.dir}" />
       <src path="${test.dir}" />
       <src path="${closure-compiler.dir}/src" />

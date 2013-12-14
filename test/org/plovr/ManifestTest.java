@@ -77,6 +77,7 @@ public class ManifestTest {
         "/closure/goog/base.js",
         "/closure/goog/deps.js",
         "/closure/goog/debug/error.js",
+        "/closure/goog/dom/nodetype.js",
         "/closure/goog/string/string.js",
         "/closure/goog/asserts/asserts.js",
         "/closure/goog/array/array.js",
@@ -85,6 +86,7 @@ public class ManifestTest {
         "/closure/goog/events/browserfeature.js",
         "/closure/goog/disposable/idisposable.js",
         "/closure/goog/disposable/disposable.js",
+        "/closure/goog/events/eventid.js",
         "/closure/goog/events/event.js",
         "/closure/goog/events/eventtype.js",
         "/closure/goog/reflect/reflect.js",
@@ -92,6 +94,7 @@ public class ManifestTest {
         "/closure/goog/events/listenable.js",
         "/closure/goog/events/listener.js",
         "/closure/goog/object/object.js",
+        "/closure/goog/events/listenermap.js",
         "/closure/goog/events/events.js",
         "test/org/plovr/example.js"
     );

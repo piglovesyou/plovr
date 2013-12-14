@@ -34,7 +34,7 @@ git clone git@github.com:Obvious/plovr
 cd plovr/package
 npm install .
 cd node_modules
-ln -s obvious-closure-library node_modules
+ln -s obvious-closure-library closure-library
 cd ../..
 ant jar
 cp build/plovr.jar package/bin/
