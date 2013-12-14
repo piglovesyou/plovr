@@ -20,7 +20,7 @@
   <property name="closure.dir" value="package/node_modules" />
   <property name="closure-compiler.dir" value="${closure.dir}/closure-compiler" />
   <property name="closure-library.dir" value="${closure.dir}/closure-library" />
-  <property name="closure-stylesheets.dir" value="${closure.dir}/closure-stylesheets" />
+  <property name="closure-stylesheets.dir" value="closure/closure-stylesheets" />
   <property name="closure-templates.dir" value="${closure.dir}/closure-templates-src" />
 
   <!--
