@@ -33,6 +33,6 @@
     "devDependencies": {
         "closure-compiler": "git+ssh://git@github.com:Obvious/closure-compiler.git#v20131213.0.0",
         "closure-templates-src": "git+ssh://git@github.com:Obvious/closure-templates.git#v20130326",
-        "obvious-closure-library": "git+ssh://git@github.com:Obvious/closure-library.git#v20131213.0.0"
+        "obvious-closure-library": "git+ssh://git@github.com:Obvious/closure-library.git#v20131217.0.0"
     }
 }
