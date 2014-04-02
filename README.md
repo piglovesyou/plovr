@@ -11,7 +11,7 @@ npm install plovr
 ```
 
 What this is really doing is just grabbing a particular "blessed" (by
-this module) Plovr that we built from the Obvious repos.
+this module) Plovr that we built from the Medium repos.
 
 Note that Plovr requires a Java runtime to operate. It specifically
 assumes that there is a binary called `java` in the `$PATH` and will
@@ -30,7 +30,7 @@ Your environment will need to be set up such that
 
 Then you need to run
 ```
-git clone git@github.com:Obvious/plovr
+git clone git@github.com:Medium/plovr
 cd plovr/package
 npm install .
 cd node_modules
@@ -44,7 +44,7 @@ Contributing
 ------------
 
 Questions, comments, bug reports, and pull requests are all welcome.
-Submit them at [the project on GitHub](https://github.com/Obvious/plovr/).
+Submit them at [the project on GitHub](https://github.com/Medium/plovr/).
 
 Bug reports that include steps-to-reproduce (including code) are the
 best. Even better, make them in the form of pull requests.
@@ -53,12 +53,12 @@ Author
 ------
 
 @nicks, supported by
-[The Obvious Corporation](http://obvious.com/).
+[A Medium Corporation](http://medium.com/).
 
 License
 -------
 
-Copyright 2012 [The Obvious Corporation](http://obvious.com/).
+Copyright 2012 [A Medium Corporation](http://medium.com/).
 
 Licensed under the Apache License, Version 2.0. 
 (http://www.apache.org/licenses/LICENSE-2.0).
