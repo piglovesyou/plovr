@@ -1,7 +1,7 @@
 # Closure Library
 
 This is Obvious' fork of the
-[Google Closure Library](http://closure-library.googlecode.com).
+[Google Closure Library](https://github.com/google/closure-library).
 
 We try to keep it reasonably up to date, but only after testing that it is
 compatible with our products. There may occasionally be changes introduced to
@@ -24,10 +24,10 @@ To sync changes from the main project, run the following:
 # Sync changes from code.google.com
 git clone git@github.com:Obvious/closure-library
 cd closure-library
-git remote add googlecode http://code.google.com/p/closure-library
-git fetch googlecode
+git remote add google git@github.com:google/closure-library
+git fetch google
 git checkout pristine
-git merge googlecode/master
+git merge google/master
 git push origin pristine
 
 # Layer our changes on top
