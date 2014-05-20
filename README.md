@@ -11,7 +11,7 @@ patches.
 The package number reflects the date that we last merged the fork. We rebase
 our changes on top of origin/master, so that our modifications are always on top of
 the closure-library master changes.
-gi
+
 ## Merging from the main project
 
 The 'pristine' branch contains only changes that we've pulled from the main repo.
