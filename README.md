@@ -1,6 +1,6 @@
 # Closure Library
 
-This is Obvious' fork of the
+This is Medium's fork of the
 [Google Closure Library](https://github.com/google/closure-library).
 
 We try to keep it reasonably up to date, but only after testing that it is
@@ -11,29 +11,6 @@ patches.
 The package number reflects the date that we last merged the fork. We rebase
 our changes on top of origin/master, so that our modifications are always on top of
 the closure-library master changes.
-
-## Merging from the main project
-
-The 'pristine' branch contains only changes that we've pulled from the main repo.
-
-The 'master' branch should always contain main repo changes, with our changes layered on top.
-
-To sync changes from the main project, run the following:
-
-```
-# Sync changes from code.google.com
-git clone git@github.com:Obvious/closure-library
-cd closure-library
-git remote add google git@github.com:google/closure-library
-git fetch google
-git checkout pristine
-git merge google/master
-git push origin pristine
-
-# Layer our changes on top
-git checkout master
-git rebase pristine master
-```
 
 ## NPM Info
 
