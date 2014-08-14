@@ -1,0 +1,26 @@
+{
+  "name" : "obvious-closure-library",
+  "version" : "20140718.0.0",
+  "description" : "Fork of closure-library that allows installation via NPM.",
+  "keywords" : ["javascript", "library", "google", "closure"],
+  "repository" : {
+    "type" : "git",
+    "url" : "http://github.com/Medium/closure-library.git"
+  },
+  "homepage" : "https://github.com/Medium/closure-library",
+  "author" : {
+    "name" : "Daniel Pupius",
+    "email" : "dan@medium.com",
+    "url" : "https://github.com/dpup"
+  },
+  "scripts": {
+    "postinstall": "./bin/postinstall"
+  },
+  "dependencies": {
+    "glob": "3.1.14"
+  },
+  "licenses": [ {
+    "type": "Apache 2.0",
+    "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+  } ]
+}
