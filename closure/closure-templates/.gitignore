@@ -1,0 +1,5 @@
+build/*
+package/SoyToJsSrcCompiler.jar
+package/SoyMsgExtractor.jar
+package/soyutils.js
+package/soyutils_usegoog.js
