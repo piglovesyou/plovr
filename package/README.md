@@ -1,9 +1,14 @@
 plovr
 =====
 
-An npm wrapper for [Plovr](http://plovr.com/), the Closure (JS compiler) build tool.
+A fork and npm wrapper of [Plovr](http://plovr.com/), the Closure (JS compiler) build tool.
 
 Forked from [the main plovr repo](https://github.com/bolinfest/plovr/).
+
+We try to keep it reasonably up to date with the HEAD of each Closure project,
+but only after testing that it is compatible with our products. There may
+occasionally be changes introduced to work around temporary issues or to try out
+fixes in preparation of upstream patches.
 
 Installing
 -----------------------
@@ -34,13 +39,8 @@ Your environment will need to be set up such that
 Then you need to run
 ```
 git clone git@github.com:Medium/plovr
-cd plovr/package
-npm install .
-cd node_modules
-ln -s obvious-closure-library closure-library
-cd ../..
-ant jar
-cp build/plovr.jar package/bin/
+cd plovr
+./build-package.sh
 ```
 
 Contributing
