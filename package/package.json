@@ -1,6 +1,6 @@
 {
     "name": "plovr",
-    "version": "0.7.5",
+    "version": "1.0.0-alpha",
     "keywords":
         ["javascript", "compiler", "closure", "build"],
     "description":
@@ -14,25 +14,11 @@
         "type": "Apache 2.0",
         "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     } ],
-    "author": {
-        "name": "Nick Santos",
-        "email": "nick@medium.com"
-    },
-
     "bin": {
         "plovr": "./bin/plovr"
     },
     "files": [
         "bin"
     ],
-    "engine": {
-        "node": "*"
-    },
-    "preferGlobal": true,
-
-    "devDependencies": {
-        "closure-compiler": "git+ssh://git@github.com:Medium/closure-compiler.git#v20140401",
-        "closure-templates-src": "git+ssh://git@github.com:Medium/closure-templates.git#v20130326",
-        "obvious-closure-library": "git+ssh://git@github.com:Medium/closure-library.git#v20140401"
-    }
+    "preferGlobal": true
 }

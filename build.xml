@@ -17,11 +17,11 @@
   <property name="build.dir.www.jsdoc" value="${build.dir.www}/jsdoc" />
   <property name="javadoc.dir" value="${build.dir.www}/javadoc" />
 
-  <property name="closure.dir" value="package/node_modules" />
+  <property name="closure.dir" value="closure" />
   <property name="closure-compiler.dir" value="${closure.dir}/closure-compiler" />
   <property name="closure-library.dir" value="${closure.dir}/closure-library" />
-  <property name="closure-stylesheets.dir" value="closure/closure-stylesheets" />
-  <property name="closure-templates.dir" value="${closure.dir}/closure-templates-src" />
+  <property name="closure-stylesheets.dir" value="${closure.dir}/closure-stylesheets" />
+  <property name="closure-templates.dir" value="${closure.dir}/closure-templates" />
 
   <!--
     Use -Dtest.class to change what tests are run on the command-line.
