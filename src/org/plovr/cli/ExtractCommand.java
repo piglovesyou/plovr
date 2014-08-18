@@ -60,7 +60,7 @@ public class ExtractCommand extends AbstractCommandRunner<ExtractCommandOptions>
 
     // Select all of the Soy files in the list of inputs and add them to a
     // SoyFileSet
-    SoyFileSet.Builder sfsBuilder = new SoyFileSet.Builder();
+    SoyFileSet.Builder sfsBuilder = SoyFileSet.builder();
     for (final JsInput input : inputs) {
       if (input.isSoyFile()) {
         InputSupplier<? extends Reader> reader = new InputSupplier<StringReader>() {

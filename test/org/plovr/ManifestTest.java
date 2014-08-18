@@ -49,7 +49,7 @@ public class ManifestTest {
 
   @Test
   public void testSimpleManifest() throws CompilationException {
-    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
 
@@ -80,8 +80,8 @@ public class ManifestTest {
         "/closure/goog/dom/nodetype.js",
         "/closure/goog/string/string.js",
         "/closure/goog/asserts/asserts.js",
-        "/closure/goog/array/array.js",
         "/closure/goog/debug/entrypointregistry.js",
+        "/closure/goog/array/array.js",
         "/closure/goog/labs/useragent/util.js",
         "/closure/goog/labs/useragent/browser.js",
         "/closure/goog/labs/useragent/engine.js",
@@ -106,7 +106,7 @@ public class ManifestTest {
 
   @Test
   public void testCompilationOrder() throws CompilationException {
-    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();

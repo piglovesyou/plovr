@@ -5,3 +5,4 @@ build/
 /.nobuckcheck
 
 package/node_modules
+package/bin/plovr.jar

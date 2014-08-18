@@ -20,7 +20,10 @@
 
 
 goog.provide('goog.Disposable');
+/** @suppress {extraProvide} */
 goog.provide('goog.dispose');
+/** @suppress {extraProvide} */
+goog.provide('goog.disposeAll');
 
 goog.require('goog.disposable.IDisposable');
 
@@ -55,7 +58,7 @@ goog.Disposable.MonitoringMode = {
   /**
    * Creating and disposing the goog.Disposable instances is monitored. All
    * disposable objects need to call the {@code goog.Disposable} base
-   * constructor. The PERMANENT mode must bet switched on before creating any
+   * constructor. The PERMANENT mode must be switched on before creating any
    * goog.Disposable instances.
    */
   PERMANENT: 1,
@@ -209,7 +212,9 @@ goog.Disposable.prototype.addOnDisposeCallback = function(callback, opt_scope) {
   if (!this.onDisposeCallbacks_) {
     this.onDisposeCallbacks_ = [];
   }
-  this.onDisposeCallbacks_.push(goog.bind(callback, opt_scope));
+
+  this.onDisposeCallbacks_.push(
+      goog.isDef(opt_scope) ? goog.bind(callback, opt_scope) : callback);
 };
 
 
@@ -223,7 +228,7 @@ goog.Disposable.prototype.addOnDisposeCallback = function(callback, opt_scope) {
  * For example:
  * <pre>
  *   mypackage.MyClass = function() {
- *     goog.base(this);
+ *     mypackage.MyClass.base(this, 'constructor');
  *     // Constructor logic specific to MyClass.
  *     ...
  *   };
@@ -234,7 +239,7 @@ goog.Disposable.prototype.addOnDisposeCallback = function(callback, opt_scope) {
  *     ...
  *     // Call superclass's disposeInternal at the end of the subclass's, like
  *     // in C++, to avoid hard-to-catch issues.
- *     goog.base(this, 'disposeInternal');
+ *     mypackage.MyClass.base(this, 'disposeInternal');
  *   };
  * </pre>
  * @protected

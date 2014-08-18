@@ -71,7 +71,7 @@ public class ModuleConfigTest {
     //    \ /
     //     E
 
-    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();
@@ -144,7 +144,7 @@ public class ModuleConfigTest {
     // both D and E. The former should end up in module D, while the
     // latter should end up in module B.
 
-    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();
@@ -226,7 +226,7 @@ public class ModuleConfigTest {
     //
     // An input file depended on by C, D, and E should migrate up to C.
 
-    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();

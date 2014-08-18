@@ -1,0 +1,28 @@
+{
+  "name": "closure-templates",
+  "version": "20140422.0.0",
+  "keywords": [
+    "javascript",
+    "closure",
+    "build",
+    "soy",
+    "templates"
+  ],
+  "description": "Pre-built closure-templates JAR files packaged for NPM",
+  "homepage": "https://github.com/Medium/closure-templates",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Medium/closure-templates.git"
+  },
+  "licenses": [
+    {
+      "type": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  ],
+  "main": "soyfiles.js",
+  "scripts": {
+    "test": "ant test",
+    "prepublish": "cd .. && ./build-package.sh"
+  }
+}

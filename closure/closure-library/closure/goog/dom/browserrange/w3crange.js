@@ -49,7 +49,7 @@ goog.inherits(goog.dom.browserrange.W3cRange,
 /**
  * Returns a browser range spanning the given node's contents.
  * @param {Node} node The node to select.
- * @return {Range} A browser range spanning the node's contents.
+ * @return {!Range} A browser range spanning the node's contents.
  * @protected
  */
 goog.dom.browserrange.W3cRange.getBrowserRangeForNode = function(node) {
@@ -92,7 +92,7 @@ goog.dom.browserrange.W3cRange.getBrowserRangeForNode = function(node) {
  * @param {number} startOffset The offset within the start node.
  * @param {Node} endNode The node to end with - should not be a BR.
  * @param {number} endOffset The offset within the end node.
- * @return {Range} A browser range spanning the node's contents.
+ * @return {!Range} A browser range spanning the node's contents.
  * @protected
  */
 goog.dom.browserrange.W3cRange.getBrowserRangeForNodes = function(startNode,
@@ -108,7 +108,7 @@ goog.dom.browserrange.W3cRange.getBrowserRangeForNodes = function(startNode,
 /**
  * Creates a range object that selects the given node's text.
  * @param {Node} node The node to select.
- * @return {goog.dom.browserrange.W3cRange} A Gecko range wrapper object.
+ * @return {!goog.dom.browserrange.W3cRange} A Gecko range wrapper object.
  */
 goog.dom.browserrange.W3cRange.createFromNodeContents = function(node) {
   return new goog.dom.browserrange.W3cRange(
@@ -122,7 +122,7 @@ goog.dom.browserrange.W3cRange.createFromNodeContents = function(node) {
  * @param {number} startOffset The offset within the start node.
  * @param {Node} endNode The node to end with.
  * @param {number} endOffset The offset within the end node.
- * @return {goog.dom.browserrange.W3cRange} A wrapper object.
+ * @return {!goog.dom.browserrange.W3cRange} A wrapper object.
  */
 goog.dom.browserrange.W3cRange.createFromNodes = function(startNode,
     startOffset, endNode, endOffset) {
@@ -133,7 +133,7 @@ goog.dom.browserrange.W3cRange.createFromNodes = function(startNode,
 
 
 /**
- * @return {goog.dom.browserrange.W3cRange} A clone of this range.
+ * @return {!goog.dom.browserrange.W3cRange} A clone of this range.
  * @override
  */
 goog.dom.browserrange.W3cRange.prototype.clone = function() {
@@ -245,13 +245,21 @@ goog.dom.browserrange.W3cRange.prototype.select = function(reverse) {
  * @param {*} reverse Whether to select this range in reverse.
  * @protected
  */
-goog.dom.browserrange.W3cRange.prototype.selectInternal = function(selection,
-                                                                   reverse) {
-  // Browser-specific tricks are needed to create reversed selections
-  // programatically. For this generic W3C codepath, ignore the reverse
-  // parameter.
-  selection.removeAllRanges();
-  selection.addRange(this.range_);
+goog.dom.browserrange.W3cRange.prototype.selectInternal = function(selection, reverse) {
+  if (!reverse || this.isCollapsed()) {
+    // This implementation for select() is more robust, and works fine for
+    // collapsed and forward ranges.  This works around
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=773137, and is tested by
+    // range_test.html's testFocusedElementDisappears.
+    selection.removeAllRanges();
+    selection.addRange(this.range_);
+  } else {
+    // Reversed selection -- start with a caret on the end node, and extend it
+    // back to the start.  Unfortunately, collapse() fails when focus is
+    // invalid.
+    selection.collapse(this.getEndNode(), this.getEndOffset());
+    selection.extend(this.getStartNode(), this.getStartOffset());
+  }
 };
 
 

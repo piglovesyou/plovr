@@ -16,7 +16,7 @@
 
 package com.google.template.soy.basetree;
 
-import org.junit.*;
+import junit.framework.*;
 
 
 /**

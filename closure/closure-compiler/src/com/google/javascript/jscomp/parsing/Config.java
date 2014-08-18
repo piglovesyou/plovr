@@ -34,6 +34,8 @@ public class Config {
     ECMASCRIPT3,
     ECMASCRIPT5,
     ECMASCRIPT5_STRICT,
+    ECMASCRIPT6,
+    ECMASCRIPT6_STRICT,
   }
 
   /**
@@ -67,15 +69,11 @@ public class Config {
    */
   final boolean acceptConstKeyword;
 
-  /**
-   * Annotation names.
-   */
-
   Config(Set<String> annotationWhitelist, Set<String> suppressionNames,
-      boolean isIdeMode, LanguageMode languageMode,
+      boolean isIdeMode, boolean parseJsDocDocumentation, LanguageMode languageMode,
       boolean acceptConstKeyword) {
     this.annotationNames = buildAnnotationNames(annotationWhitelist);
-    this.parseJsDocDocumentation = isIdeMode;
+    this.parseJsDocDocumentation = parseJsDocDocumentation;
     this.suppressionNames = suppressionNames;
     this.isIdeMode = isIdeMode;
     this.languageMode = languageMode;

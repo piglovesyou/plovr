@@ -264,6 +264,10 @@ goog.pubsub.PubSub.prototype.publish = function(topic, var_args) {
       while ((pendingKey = this.pendingKeys_.pop())) {
         this.unsubscribeByKey(pendingKey);
       }
+      // if disposed during publish, cleanup internal objects
+      if (this.isDisposed()) {
+        this.cleanUp_()
+      }
     }
 
     // At least one subscriber was called.
@@ -316,11 +320,26 @@ goog.pubsub.PubSub.prototype.getCount = function(opt_topic) {
   return count;
 };
 
+/**
+ * Cleans up the subscriptions array as well as the topics/pendingKeys
+ * @private
+ */
+goog.pubsub.PubSub.prototype.cleanUp_ = function() {
+  delete this.subscriptions_;
+  delete this.topics_;
+  delete this.pendingKeys_;
+};
 
 /** @override */
 goog.pubsub.PubSub.prototype.disposeInternal = function() {
   goog.pubsub.PubSub.superClass_.disposeInternal.call(this);
-  delete this.subscriptions_;
-  delete this.topics_;
-  delete this.pendingKeys_;
+
+  // if we're currently publishing, queue keys for removal
+  if (this.publishDepth_ != 0) {
+    for (var i = 1; i < this.subscriptions_.length; i+=3) {
+      this.unsubscribeByKey(i)
+    }
+  } else {
+    this.cleanUp_()
+  }
 };
