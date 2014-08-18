@@ -65,20 +65,20 @@ ${PLOVR_DIR}/lib/hamcrest-core-1.3.jar:\
 ${PLOVR_DIR}/lib/hamcrest-library-1.3.jar:\
 ${PLOVR_DIR}/lib/junit-4.11.jar:\
 ${PLOVR_DIR}/lib/selenium-java-2.21.0.jar:\
-${PLOVR_DIR}/closure/closure-compiler/lib/args4j.jar:\
-${PLOVR_DIR}/closure/closure-compiler/lib/json.jar:\
-${PLOVR_DIR}/closure/closure-compiler/lib/jsr305.jar:\
-${PLOVR_DIR}/closure/closure-compiler/lib/protobuf-java.jar:\
-${PLOVR_DIR}/closure/closure-compiler/build/lib/rhino.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/aopalliance.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/guice-3.0.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/guice-assistedinject-3.0.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/guice-multibindings-3.0.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/icu4j-core.jar:\
-${PLOVR_DIR}/closure/closure-templates/java/lib/javax.inject.jar:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/lib/args4j.jar:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/lib/json.jar:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/lib/jsr305.jar:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/lib/protobuf-java.jar:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/build/lib/rhino.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/aopalliance.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/guice-3.0.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/guice-assistedinject-3.0.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/guice-multibindings-3.0.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/icu4j-core.jar:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/java/lib/javax.inject.jar:\
 ${PLOVR_DIR}/build/soy-resources/:\
-${PLOVR_DIR}/closure/closure-compiler/:\
-${PLOVR_DIR}/closure/closure-templates/javascript/:\
-${PLOVR_DIR}/closure/closure-library/:\
+${PLOVR_DIR}/package/node_modules/closure-compiler/:\
+${PLOVR_DIR}/package/node_modules/closure-templates-src/javascript/:\
+${PLOVR_DIR}/package/node_modules/closure-library/:\
 ${PLOVR_DIR}/lib/closure-stylesheets-20130106.jar \
 org.plovr.cli.Main "$@"

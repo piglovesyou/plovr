@@ -12,7 +12,7 @@ fi
 OUTPUT_DIR=build/www/jsdoc
 mkdir -p $OUTPUT_DIR
 
-find closure/closure-library -name '*.js' | \
+find package/node_modules/closure-library -name '*.js' | \
     xargs grep -h -o -e "goog.provide\(.*\);" | \
     sed -e "s/goog.provide('\(.*\)');/goog.require('\1');/" > \
     build/www/jsdoc/requires.js

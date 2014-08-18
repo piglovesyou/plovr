@@ -49,7 +49,7 @@ public class ManifestTest {
 
   @Test
   public void testSimpleManifest() throws CompilationException {
-    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
 
@@ -77,14 +77,19 @@ public class ManifestTest {
         "/closure/goog/base.js",
         "/closure/goog/deps.js",
         "/closure/goog/debug/error.js",
+        "/closure/goog/dom/nodetype.js",
         "/closure/goog/string/string.js",
         "/closure/goog/asserts/asserts.js",
         "/closure/goog/array/array.js",
         "/closure/goog/debug/entrypointregistry.js",
+        "/closure/goog/labs/useragent/util.js",
+        "/closure/goog/labs/useragent/browser.js",
+        "/closure/goog/labs/useragent/engine.js",
         "/closure/goog/useragent/useragent.js",
         "/closure/goog/events/browserfeature.js",
         "/closure/goog/disposable/idisposable.js",
         "/closure/goog/disposable/disposable.js",
+        "/closure/goog/events/eventid.js",
         "/closure/goog/events/event.js",
         "/closure/goog/events/eventtype.js",
         "/closure/goog/reflect/reflect.js",
@@ -92,6 +97,7 @@ public class ManifestTest {
         "/closure/goog/events/listenable.js",
         "/closure/goog/events/listener.js",
         "/closure/goog/object/object.js",
+        "/closure/goog/events/listenermap.js",
         "/closure/goog/events/events.js",
         "test/org/plovr/example.js"
     );
@@ -100,7 +106,7 @@ public class ManifestTest {
 
   @Test
   public void testCompilationOrder() throws CompilationException {
-    File closureLibraryDirectory = new File("closure/closure-library/closure/goog/");
+    File closureLibraryDirectory = new File("package/node_modules/closure-library/closure/goog/");
 
     final List<ConfigPath> dependencies = ImmutableList.of();
     final List<File> externs = ImmutableList.of();
