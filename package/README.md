@@ -3,11 +3,14 @@ plovr
 
 An npm wrapper for [Plovr](http://plovr.com/), the Closure (JS compiler) build tool.
 
+Forked from [the main plovr repo](https://github.com/bolinfest/plovr/).
+
 Installing
 -----------------------
 
 ```shell
 npm install plovr
+node_modules/.bin/plovr
 ```
 
 What this is really doing is just grabbing a particular "blessed" (by
@@ -44,7 +47,8 @@ Contributing
 ------------
 
 Questions, comments, bug reports, and pull requests are all welcome.
-Submit them at [the project on GitHub](https://github.com/Medium/plovr/).
+We are happy to accept them at this project, but we encourage you to submit them
+to [the main project](https://github.com/bolinfest/plovr/).
 
 Bug reports that include steps-to-reproduce (including code) are the
 best. Even better, make them in the form of pull requests.

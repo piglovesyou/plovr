@@ -20,5 +20,8 @@
     "files": [
         "bin"
     ],
-    "preferGlobal": true
+    "preferGlobal": true,
+    "scripts": {
+        "prepublish": "../build-package.sh"
+    }
 }
