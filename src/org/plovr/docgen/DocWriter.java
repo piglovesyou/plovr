@@ -25,7 +25,7 @@ public class DocWriter {
   private static final URL stylesheet;
 
   static {
-    SoyFileSet.Builder builder = new SoyFileSet.Builder();
+    SoyFileSet.Builder builder = SoyFileSet.builder();
     builder.add(Resources.getResource(DocWriter.class, "docgen.soy"));
     SoyFileSet fileSet = builder.build();
     tofu = fileSet.compileToTofu();
