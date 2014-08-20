@@ -1,0 +1,14 @@
+
+# emacs
+*~
+\#*#
+
+# python
+*.pyc
+
+*.css
+*.data
+*.gif
+*.html
+*.png
+*_test.js
