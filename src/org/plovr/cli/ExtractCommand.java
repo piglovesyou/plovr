@@ -63,13 +63,7 @@ public class ExtractCommand extends AbstractCommandRunner<ExtractCommandOptions>
     SoyFileSet.Builder sfsBuilder = SoyFileSet.builder();
     for (final JsInput input : inputs) {
       if (input.isSoyFile()) {
-        InputSupplier<? extends Reader> reader = new InputSupplier<StringReader>() {
-          @Override
-          public StringReader getInput() throws IOException {
-            return new StringReader(input.getTemplateCode());
-          }
-        };
-        sfsBuilder.add(reader, input.getName());
+        sfsBuilder.add(input.getTemplateCode(), input.getName());
       }
     }
 

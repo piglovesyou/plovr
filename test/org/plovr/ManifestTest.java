@@ -83,6 +83,7 @@ public class ManifestTest {
         "/closure/goog/debug/entrypointregistry.js",
         "/closure/goog/array/array.js",
         "/closure/goog/labs/useragent/util.js",
+        "/closure/goog/object/object.js",
         "/closure/goog/labs/useragent/browser.js",
         "/closure/goog/labs/useragent/engine.js",
         "/closure/goog/useragent/useragent.js",
@@ -96,7 +97,6 @@ public class ManifestTest {
         "/closure/goog/events/browserevent.js",
         "/closure/goog/events/listenable.js",
         "/closure/goog/events/listener.js",
-        "/closure/goog/object/object.js",
         "/closure/goog/events/listenermap.js",
         "/closure/goog/events/events.js",
         "test/org/plovr/example.js"
