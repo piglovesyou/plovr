@@ -510,7 +510,7 @@ class CollapseProperties implements CompilerPass {
   private void flattenSimpleStubDeclaration(Name name, String alias) {
     Ref ref = Iterables.getOnlyElement(name.getRefs());
     Node nameNode = NodeUtil.newName(
-        compiler.getCodingConvention(), alias, ref.node,
+        compiler, alias, ref.node,
         name.getFullName());
     Node varNode = IR.var(nameNode).copyInformationFrom(nameNode);
 
@@ -646,8 +646,7 @@ class CollapseProperties implements CompilerPass {
     //     string c
     // AFTER:
     //   name a$b$c
-    Node ref = NodeUtil.newName(
-        compiler.getCodingConvention(), alias, n, originalName);
+    Node ref = NodeUtil.newName(compiler, alias, n, originalName);
     NodeUtil.copyNameAnnotations(n.getLastChild(), ref);
     if (parent.isCall() && n == parent.getFirstChild()) {
       // The node was a call target, we are deliberately flatten these as
@@ -720,8 +719,7 @@ class CollapseProperties implements CompilerPass {
     }
 
     // Create the new alias node.
-    Node nameNode = NodeUtil.newName(
-        compiler.getCodingConvention(), alias, gramps.getFirstChild(),
+    Node nameNode = NodeUtil.newName(compiler, alias, gramps.getFirstChild(),
         refName.getFullName());
     NodeUtil.copyNameAnnotations(ref.node.getLastChild(), nameNode);
 
@@ -860,8 +858,7 @@ class CollapseProperties implements CompilerPass {
 
       ref.node.getParent().removeChild(rvalue);
 
-      Node nameNode = NodeUtil.newName(
-          compiler.getCodingConvention(),
+      Node nameNode = NodeUtil.newName(compiler,
           alias, ref.node.getAncestor(2), n.getFullName());
 
       JSDocInfo info = ref.node.getParent().getJSDocInfo();

@@ -13,19 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.javascript.jscomp.parsing;
+
+package com.google.javascript.refactoring;
+
+import com.google.javascript.jscomp.AbstractCompiler;
 
 /**
- * Represents a JavaScript comment.
+ * Class that holds metadata (or meta objects) for use by JsFlume that aren't
+ * contained within the Node itself.
+ *
+ * @author mknichel@google.com (Mark Knichel)
  */
-public interface Comment {
-  public boolean isJsDoc();
+public final class NodeMetadata {
 
-  public int getAbsolutePosition();
+  private final AbstractCompiler compiler;
 
-  public int getLine();
+  public NodeMetadata(AbstractCompiler compiler) {
+    this.compiler = compiler;
+  }
 
-  public int getLength();
-
-  public String getText();
+  public AbstractCompiler getCompiler() {
+    return compiler;
+  }
 }

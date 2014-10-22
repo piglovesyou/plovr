@@ -109,7 +109,7 @@ public class Node implements Cloneable, Serializable {
       ARROW_FN           = 60,
       YIELD_FOR          = 61,    // Set if a yield is a "yield all"
       EXPORT_DEFAULT     = 62,    // Set if a export is a "default" export
-      EXPORT_ALL_FROM    = 63,    // Set if a export is a "*" export
+      EXPORT_ALL_FROM    = 63,    // Set if an export is a "*"
       IS_CONSTANT_VAR    = 64,    // A lexical variable is inferred const
       GENERATOR_MARKER   = 65,    // Used by the ES6-to-ES3 translator.
       GENERATOR_SAFE     = 66,    // Used by the ES6-to-ES3 translator.
@@ -123,10 +123,14 @@ public class Node implements Cloneable, Serializable {
                                   // var obj = { get [prop]() {...} };
       COMPUTED_PROP_SETTER = 74,  // A computed property in a setter, e.g.
                                   // var obj = { set [prop](val) {...} };
-      ANALYZED_DURING_GTI  = 75;  // In GlobalTypeInfo, we mark some AST nodes
+      ANALYZED_DURING_GTI  = 75,  // In GlobalTypeInfo, we mark some AST nodes
                                   // to avoid analyzing them during
                                   // NewTypeInference. We remove this attribute
                                   // in the fwd direction of NewTypeInference.
+      CONSTANT_PROPERTY_DEF = 76; // Used to communicate information between
+                                  // GlobalTypeInfo and NewTypeInference.
+                                  // We use this to tag getprop nodes that
+                                  // declare properties.
 
 
   public static final int   // flags for INCRDECR_PROP
@@ -176,6 +180,7 @@ public class Node implements Cloneable, Serializable {
         case COMPUTED_PROP_GETTER: return "computed_prop_getter";
         case COMPUTED_PROP_SETTER: return "computed_prop_setter";
         case ANALYZED_DURING_GTI:  return "analyzed_during_gti";
+        case CONSTANT_PROPERTY_DEF: return "constant_property_def";
         default:
           throw new IllegalStateException("unexpected prop id " + propType);
       }
@@ -352,7 +357,7 @@ public class Node implements Cloneable, Serializable {
 
     @Override
     public String toString() {
-      return objectValue == null ? "null" : objectValue.toString();
+      return String.valueOf(objectValue);
     }
 
     @Override
@@ -1763,6 +1768,7 @@ public class Node implements Cloneable, Serializable {
       // TODO(tbreisacher): Remove CAST from this list, and disallow
       // the cryptic case from cl/41958159.
       case Token.CAST:
+      case Token.DEFAULT_VALUE:
       case Token.NAME:
       case Token.GETPROP:
       case Token.GETELEM:
@@ -2556,6 +2562,10 @@ public class Node implements Cloneable, Serializable {
 
   public boolean isDelProp() {
     return this.getType() == Token.DELPROP;
+  }
+
+  public boolean isDestructuringPattern() {
+    return isObjectPattern() || isArrayPattern();
   }
 
   public boolean isDo() {

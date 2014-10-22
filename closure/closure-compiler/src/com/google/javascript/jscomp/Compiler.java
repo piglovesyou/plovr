@@ -30,14 +30,15 @@ import com.google.common.io.CharStreams;
 import com.google.debugging.sourcemap.proto.Mapping.OriginalMapping;
 import com.google.javascript.jscomp.CompilerOptions.DevMode;
 import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
+import com.google.javascript.jscomp.JSModuleGraph.MissingModuleException;
 import com.google.javascript.jscomp.ReferenceCollectingCallback.ReferenceCollection;
 import com.google.javascript.jscomp.Scope.Var;
 import com.google.javascript.jscomp.deps.SortedDependencies;
 import com.google.javascript.jscomp.deps.SortedDependencies.CircularDependencyException;
 import com.google.javascript.jscomp.deps.SortedDependencies.MissingProvideException;
-import com.google.javascript.jscomp.parsing.Comment;
 import com.google.javascript.jscomp.parsing.Config;
 import com.google.javascript.jscomp.parsing.ParserRunner;
+import com.google.javascript.jscomp.parsing.parser.trees.Comment;
 import com.google.javascript.jscomp.type.ChainableReverseAbstractInterpreter;
 import com.google.javascript.jscomp.type.ClosureReverseAbstractInterpreter;
 import com.google.javascript.jscomp.type.ReverseAbstractInterpreter;
@@ -328,6 +329,7 @@ public class Compiler extends AbstractCompiler {
    */
   public void initOptions(CompilerOptions options) {
     this.options = options;
+    this.languageMode = options.getLanguageIn();
     if (errorManager == null) {
       if (outStream == null) {
         setErrorManager(
@@ -404,7 +406,6 @@ public class Compiler extends AbstractCompiler {
       List<T1> externs,
       List<T2> inputs,
       CompilerOptions options) {
-    languageMode = options.getLanguageIn();
     JSModule module = new JSModule(SINGLETON_MODULE_NAME);
     for (SourceFile input : inputs) {
       module.add(input);
@@ -447,6 +448,8 @@ public class Compiler extends AbstractCompiler {
     initBasedOnOptions();
 
     initInputsByIdMap();
+
+    initAST();
   }
 
   /**
@@ -582,6 +585,20 @@ public class Compiler extends AbstractCompiler {
         report(JSError.make(DUPLICATE_INPUT, input.getName()));
       }
     }
+  }
+
+  /**
+   * Sets up the skeleton of the AST (the externs and root).
+   */
+  private void initAST() {
+    jsRoot = IR.block();
+    jsRoot.setIsSyntheticBlock(true);
+
+    externsRoot = IR.block();
+    externsRoot.setIsSyntheticBlock(true);
+
+    externAndJsRoot = IR.block(externsRoot, jsRoot);
+    externAndJsRoot.setIsSyntheticBlock(true);
   }
 
   public Result compile(
@@ -1202,7 +1219,7 @@ public class Compiler extends AbstractCompiler {
   @Override
   public JSTypeRegistry getTypeRegistry() {
     if (typeRegistry == null) {
-      typeRegistry = new JSTypeRegistry(oldErrorReporter, options.looseTypes);
+      typeRegistry = new JSTypeRegistry(oldErrorReporter);
     }
     return typeRegistry;
   }
@@ -1258,6 +1275,7 @@ public class Compiler extends AbstractCompiler {
     symbolTable.fillThisReferences(this, externsRoot, jsRoot);
     symbolTable.fillPropertySymbols(this, externsRoot, jsRoot);
     symbolTable.fillJSDocInfo(this, externsRoot, jsRoot);
+    symbolTable.fillSymbolVisibility(this, externsRoot, jsRoot);
 
     return symbolTable;
   }
@@ -1318,22 +1336,8 @@ public class Compiler extends AbstractCompiler {
 
     // If old roots exist (we are parsing a second time), detach each of the
     // individual file parse trees.
-    if (externsRoot != null) {
-      externsRoot.detachChildren();
-    }
-    if (jsRoot != null) {
-      jsRoot.detachChildren();
-    }
-
-    // Parse main JS sources.
-    jsRoot = IR.block();
-    jsRoot.setIsSyntheticBlock(true);
-
-    externsRoot = IR.block();
-    externsRoot.setIsSyntheticBlock(true);
-
-    externAndJsRoot = IR.block(externsRoot, jsRoot);
-    externAndJsRoot.setIsSyntheticBlock(true);
+    externsRoot.detachChildren();
+    jsRoot.detachChildren();
 
     if (options.tracer.isOn()) {
       tracker = new PerformanceTracker(jsRoot, options.tracer);
@@ -1362,7 +1366,7 @@ public class Compiler extends AbstractCompiler {
         processAMDAndCommonJSModules();
       }
 
-      hoistExterns(externsRoot);
+      hoistExterns();
 
       // Check if the sources need to be re-ordered.
       boolean staleInputs = false;
@@ -1449,7 +1453,7 @@ public class Compiler extends AbstractCompiler {
   /**
    * Hoists inputs with the @externs annotation into the externs list.
    */
-  private void hoistExterns(Node externsRoot) {
+  void hoistExterns() {
     boolean staleInputs = false;
     for (CompilerInput input : inputs) {
       if (options.dependencyOptions.needsManagement()) {
@@ -1538,7 +1542,7 @@ public class Compiler extends AbstractCompiler {
    * on the way.
    */
   void processAMDAndCommonJSModules() {
-    Map<String, JSModule> modulesByName = Maps.newLinkedHashMap();
+    Map<String, JSModule> modulesByProvide = Maps.newLinkedHashMap();
     Map<CompilerInput, JSModule> modulesByInput = Maps.newLinkedHashMap();
     // TODO(nicksantos): Refactor module dependency resolution to work nicely
     // with multiple ways to express dependencies. Directly support JSModules
@@ -1559,16 +1563,18 @@ public class Compiler extends AbstractCompiler {
             ES6ModuleLoader.createNaiveLoader(
                 this, options.commonJSModulePathPrefix), true);
         cjs.process(null, root);
-        JSModule m = cjs.getModule();
-        if (m != null) {
-          modulesByName.put(m.getName(), m);
-          modulesByInput.put(input, m);
+
+        JSModule m = new JSModule(cjs.inputToModuleName(input));
+        m.addAndOverrideModule(input);
+        for (String provide : input.getProvides()) {
+          modulesByProvide.put(provide, m);
         }
+        modulesByInput.put(input, m);
       }
     }
 
     if (options.processCommonJSModules) {
-      List<JSModule> modules = Lists.newArrayList(modulesByName.values());
+      List<JSModule> modules = Lists.newArrayList(modulesByProvide.values());
       if (!modules.isEmpty()) {
         this.modules = modules;
         this.moduleGraph = new JSModuleGraph(this.modules);
@@ -1576,7 +1582,7 @@ public class Compiler extends AbstractCompiler {
       for (JSModule module : modules) {
         for (CompilerInput input : module.getInputs()) {
           for (String require : input.getRequires()) {
-            JSModule dependency = modulesByName.get(require);
+            JSModule dependency = modulesByProvide.get(require);
             if (dependency == null) {
               report(JSError.make(MISSING_ENTRY_ERROR, require));
             } else {
@@ -1586,26 +1592,46 @@ public class Compiler extends AbstractCompiler {
         }
       }
       try {
-        modules = Lists.newArrayList();
-        for (CompilerInput input : this.moduleGraph.manageDependencies(
-            options.dependencyOptions, inputs)) {
-          modules.add(modulesByInput.get(input));
-        }
-        JSModule root = new JSModule("root");
-        for (JSModule m : modules) {
-          m.addDependency(root);
-        }
-        modules.add(0, root);
-        SortedDependencies<JSModule> sorter =
-          new SortedDependencies<>(modules);
-        modules = sorter.getDependenciesOf(modules, true);
-        this.modules = modules;
-
-        this.moduleGraph = new JSModuleGraph(modules);
+        addCommonJSModulesToGraph(modules, modulesByInput);
       } catch (Exception e) {
         Throwables.propagate(e);
       }
     }
+  }
+
+  void addCommonJSModulesToGraph(
+      List<JSModule> inputModules,
+      Map<CompilerInput, JSModule> modulesByInput)
+      throws CircularDependencyException, MissingProvideException, MissingModuleException {
+    List<CompilerInput> inputs = Lists.newArrayList();
+    for (JSModule module : inputModules) {
+      for (CompilerInput input : module.getInputs()) {
+        inputs.add(input);
+      }
+    }
+
+    modules = Lists.newArrayList();
+
+    DependencyOptions depOptions = options.dependencyOptions;
+    for (CompilerInput input :
+         this.moduleGraph.manageDependencies(depOptions, inputs)) {
+      modules.add(modulesByInput.get(input));
+    }
+
+    SortedDependencies<JSModule> sorter =
+        new SortedDependencies<>(modules);
+    modules = sorter.getDependenciesOf(modules, true);
+
+    // The compiler expects a module tree, so add a dependency of all modules on
+    // the first one.
+    JSModule firstModule = modules.size() > 0 ? modules.get(0) : null;
+    for (int i = 1; i < modules.size(); i++) {
+      if (!modules.get(i).getDependencies().contains(firstModule)) {
+        modules.get(i).addDependency(firstModule);
+      }
+    }
+
+    this.moduleGraph = new JSModuleGraph(modules);
   }
 
   public Node parse(SourceFile file) {
@@ -2170,7 +2196,6 @@ public class Compiler extends AbstractCompiler {
   protected Config createConfig(Config.LanguageMode mode) {
     return ParserRunner.createConfig(
         isIdeMode(),
-        isIdeMode() || options.preserveJsDoc,
         mode,
         acceptConstKeyword(),
         options.extraAnnotationNames);
@@ -2225,7 +2250,7 @@ public class Compiler extends AbstractCompiler {
   void throwInternalError(String message, Exception cause) {
     String finalMessage =
       "INTERNAL COMPILER ERROR.\n" +
-      "Please report this problem.\n" + message;
+      "Please report this problem.\n\n" + message;
 
     RuntimeException e = new RuntimeException(finalMessage, cause);
     if (cause != null) {

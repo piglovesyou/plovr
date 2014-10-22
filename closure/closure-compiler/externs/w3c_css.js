@@ -19,6 +19,7 @@
  *  The whole file has been fully type annotated.
  *  http://www.w3.org/TR/DOM-Level-2-Style/css.html
  * @externs
+ * @author stevey@google.com (Steve Yegge)
  *
  * TODO(nicksantos): When there are no more occurrences of w3c_range.js and
  * gecko_dom.js being included directly in BUILD files, bug dbeam to split the
@@ -1001,6 +1002,12 @@ CSSProperties.prototype.backgroundPosition;
 CSSProperties.prototype.backgroundRepeat;
 
 /**
+ * @type {string}
+ * @see http://www.w3.org/TR/css3-background/#the-background-size
+ */
+CSSProperties.prototype.backgroundSize;
+
+/**
  * @implicitCast
  * @type {string}
  * @see http://www.w3.org/TR/DOM-Level-2-Style/css.html#CSS-CSSProperties-border
@@ -1745,6 +1752,12 @@ CSSProperties.prototype.zIndex;
 
 /**
  * @type {string}
+ * @see http://www.w3.org/TR/css3-background/#box-shadow
+ */
+CSSProperties.prototype.boxShadow;
+
+/**
+ * @type {string}
  * @see http://www.w3.org/TR/css3-ui/#box-sizing
  */
 CSSProperties.prototype.boxSizing;
@@ -1851,12 +1864,6 @@ CSSProperties.prototype.pointerEvents;
  * @see http://www.w3.org/TR/cssom-view/#dom-window-matchmedia
  */
 Window.prototype.matchMedia = function(media_query_list) {};
-
-/**
- * @type {Screen}
- * @see http://www.w3.org/TR/cssom-view/#dom-window-screen
- */
-Window.prototype.screen;
 
 /**
  * @type {number}
@@ -2411,7 +2418,7 @@ FontFace.prototype.featureSettings;
 FontFace.prototype.status;
 
 /**
- * @return {!Promise}
+ * @return {!Promise.<!FontFace>}
  * @see http://dev.w3.org/csswg/css-font-loading/#font-face-load
  */
 FontFace.prototype.load = function() {};
@@ -2472,7 +2479,7 @@ FontFaceSet.prototype.forEach = function(cb, opt_selfObj) {};
 /**
  * @param {string} font
  * @param {string=} opt_text
- * @return {!Promise}
+ * @return {!Promise.<!Array.<!FontFace>>}
  * @see http://dev.w3.org/csswg/css-font-loading/#dom-fontfaceset-load
  */
 FontFaceSet.prototype.load = function(font, opt_text) {};
@@ -2480,16 +2487,16 @@ FontFaceSet.prototype.load = function(font, opt_text) {};
 /**
  * @param {string} font
  * @param {string=} opt_text
- * @return {!Promise}
+ * @return {boolean}
  * @see http://dev.w3.org/csswg/css-font-loading/#dom-fontfaceset-check
  */
 FontFaceSet.prototype.check = function(font, opt_text) {};
 
 /**
- * @return {!Promise}
+ * @type {!Promise.<!FontFaceSet>}
  * @see http://dev.w3.org/csswg/css-font-loading/#dom-fontfaceset-ready
  */
-FontFaceSet.prototype.ready = function() {};
+FontFaceSet.prototype.ready;
 
 /**
  * @type {FontFaceSetLoadStatus}

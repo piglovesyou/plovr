@@ -5867,7 +5867,7 @@ public class TypeCheckTest extends CompilerTypeTestCase {
         "/** @param {number} x */ function f(x) {}" +
         "f(this.Object);",
         "actual parameter 1 of f does not match formal parameter\n" +
-        "found   : function (new:Object, *=): ?\n" +
+        "found   : function (new:Object, *=): Object\n" +
         "required: number");
   }
 
@@ -11227,7 +11227,7 @@ public class TypeCheckTest extends CompilerTypeTestCase {
         "/**\n" +
         "* @constructor\n" +
         "* @param {*=} opt_value\n" +
-        "* @return {?}\n" +
+        "* @return {!Object}\n" +
         "*/\n" +
         "function Object(opt_value) {}\n" +
         "/**\n" +
@@ -12420,6 +12420,18 @@ public class TypeCheckTest extends CompilerTypeTestCase {
         "function Int2() {};",
         "Interface Int2 has a property foo with incompatible types in its " +
         "super interfaces Int0.<number> and Int1.<string>");
+  }
+
+  public void testExtendedInterfacePropertiesCompatibilityNoError() throws Exception {
+    testTypes(""
+        + "/** @interface */function Int0() {};"
+        + "/** @interface */function Int1() {};"
+        + "/** @param {number} x */"
+        + "Int0.prototype.foo;"
+        + "/** @param {number} x */"
+        + "Int1.prototype.foo;"
+        + "/** @interface \n * @extends {Int0} \n * @extends {Int1} */"
+        + "function Int2() {};");
   }
 
   public void testGenerics1() throws Exception {

@@ -261,6 +261,20 @@ public class Es6VariableReferenceCheckTest extends CompilerTestCase {
     assertParameterShadowed("function f(x=3) { function x() {} }");
     assertParameterShadowed("function f(...x) { function x() {} }");
     assertNoWarning("function f(x) { if (true) { let x; } }");
+    assertNoWarning(Joiner.on('\n').join(
+        "function outer(x) {",
+        "  function inner() {",
+        "    let x = 1;",
+        "  }",
+        "}"
+    ));
+    assertNoWarning(Joiner.on('\n').join(
+        "function outer(x) {",
+        "  function inner() {",
+        "    var x = 1;",
+        "  }",
+        "}"
+    ));
   }
 
   public void testReassignedConst() {
@@ -335,6 +349,48 @@ public class Es6VariableReferenceCheckTest extends CompilerTestCase {
 
   public void testClassExtend() {
     assertNoWarning("class A {} class C extends A {} C = class extends A {}");
+  }
+
+  public void testArrayPattern() {
+    assertNoWarning("var [a] = [1];");
+    assertNoWarning("var [a, b] = [1, 2];");
+    assertEarlyReference("alert(a); var [a] = [1];");
+    assertEarlyReference("alert(b); var [a, b] = [1, 2];");
+
+    assertEarlyReference("[a] = [1]; var a;");
+    assertEarlyReference("[a, b] = [1]; var b;");
+  }
+
+  public void testArrayPattern_defaultValue() {
+    assertNoWarning("var [a = 1] = [2];");
+    assertNoWarning("var [a = 1] = [];");
+    assertEarlyReference("alert(a); var [a = 1] = [2];");
+    assertEarlyReference("alert(a); var [a = 1] = [];");
+
+    assertEarlyReference("alert(a); var [a = b] = [1];");
+    assertEarlyReference("alert(a); var [a = b] = [];");
+  }
+
+  public void testObjectPattern() {
+    assertNoWarning("var {a: b} = {a: 1};");
+    assertNoWarning("var {a: b} = {};");
+    assertNoWarning("var {a} = {a: 1};");
+
+    // 'a' is not declared at all, so the 'a' passed to alert() references
+    // the global variable 'a', and there is no warning.
+    assertNoWarning("alert(a); var {a: b} = {};");
+
+    assertEarlyReference("alert(b); var {a: b} = {a: 1};");
+    assertEarlyReference("alert(a); var {a} = {a: 1};");
+
+    assertEarlyReference("({a: b}) = {}; var a, b;");
+  }
+
+  public void testObjectPattern_defaultValue() {
+    assertEarlyReference("alert(b); var {a: b = c} = {a: 1};");
+    assertEarlyReference("alert(b); var {a: b = c} = {};");
+    assertEarlyReference("alert(a); var {a = c} = {a: 1};");
+    assertEarlyReference("alert(a); var {a = c} = {};");
   }
 
   /**

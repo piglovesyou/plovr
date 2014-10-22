@@ -20,8 +20,8 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
 import com.google.javascript.jscomp.ReferenceCollectingCallback.ReferenceCollection;
 import com.google.javascript.jscomp.Scope.Var;
-import com.google.javascript.jscomp.parsing.Comment;
 import com.google.javascript.jscomp.parsing.Config;
+import com.google.javascript.jscomp.parsing.parser.trees.Comment;
 import com.google.javascript.jscomp.type.ReverseAbstractInterpreter;
 import com.google.javascript.rhino.ErrorReporter;
 import com.google.javascript.rhino.InputId;
@@ -372,6 +372,8 @@ public abstract class AbstractCompiler implements SourceExcerptProvider {
    * Returns the root node of the AST, which includes both externs and source.
    */
   abstract Node getRoot();
+
+  abstract CompilerOptions getOptions();
 
   /**
    * The language mode of the current root node. This will match the languageIn

@@ -16,8 +16,9 @@
 
 package com.google.javascript.jscomp.newtypes;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.javascript.jscomp.newtypes.NominalType.RawNominalType;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,6 +75,7 @@ public class DeclaredFunctionType {
     builder.addRestFormals(restFormals);
     builder.addRetType(returnType == null ? JSType.UNKNOWN : returnType);
     builder.addNominalType(nominalType);
+    builder.addReceiverType(receiverType);
     builder.addTypeParameters(typeParameters);
     return builder.buildFunction();
   }
@@ -148,6 +150,21 @@ public class DeclaredFunctionType {
 
   public ImmutableList<String> getTypeParameters() {
     return typeParameters;
+  }
+
+  public boolean isTypeVariableInScope(String tvar) {
+    if (typeParameters != null && typeParameters.contains(tvar)) {
+      return true;
+    }
+    // We don't look at this.nominalType, b/c if this function is a generic
+    // constructor, then typeParameters contains the relevant type variables.
+    if (receiverType != null && receiverType.isUninstantiatedGenericType()) {
+      RawNominalType rawType = receiverType.getRawNominalType();
+      if (rawType.getTypeParameters().contains(tvar)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public DeclaredFunctionType withTypeInfoFromSuper(
@@ -239,7 +256,7 @@ public class DeclaredFunctionType {
 
   @Override
   public String toString() {
-    return Objects.toStringHelper(this.getClass())
+    return MoreObjects.toStringHelper(this)
         .add("Required formals", requiredFormals)
         .add("Optional formals", optionalFormals)
         .add("Varargs formals", restFormals)

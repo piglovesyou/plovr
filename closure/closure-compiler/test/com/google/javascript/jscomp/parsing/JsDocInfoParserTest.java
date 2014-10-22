@@ -22,7 +22,6 @@ import com.google.common.collect.Sets;
 import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.parsing.Config.LanguageMode;
 import com.google.javascript.jscomp.parsing.ParserRunner.ParseResult;
-import com.google.javascript.jscomp.testing.TestErrorReporter;
 import com.google.javascript.rhino.InputId;
 import com.google.javascript.rhino.JSDocInfo;
 import com.google.javascript.rhino.JSDocInfo.Marker;
@@ -36,6 +35,7 @@ import com.google.javascript.rhino.jstype.SimpleSourceFile;
 import com.google.javascript.rhino.jstype.StaticSourceFile;
 import com.google.javascript.rhino.jstype.TemplateType;
 import com.google.javascript.rhino.testing.BaseJSTypeTestCase;
+import com.google.javascript.rhino.testing.TestErrorReporter;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -53,10 +53,10 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
   public void setUp() throws Exception {
     super.setUp();
     extraAnnotations = new HashSet<>(ParserRunner.createConfig(
-        true, true, LanguageMode.ECMASCRIPT3, false, null)
+        true, LanguageMode.ECMASCRIPT3, false, null)
             .annotationNames.keySet());
     extraSuppressions = new HashSet<>(ParserRunner.createConfig(
-        true, true, LanguageMode.ECMASCRIPT3, false, null).suppressionNames);
+        true, LanguageMode.ECMASCRIPT3, false, null).suppressionNames);
 
     extraSuppressions.add("x");
     extraSuppressions.add("y");
@@ -248,6 +248,12 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
 
   public void testParseUndefinedType3() throws Exception {
     assertTypeEquals(VOID_TYPE, parse("@type {void}*/").getType());
+  }
+
+  public void testParseTemplatizedTypeAlternateSyntax() throws Exception {
+    JSDocInfo info = parse("@type !Array<number> */");
+    assertTypeEquals(
+        createTemplatizedType(ARRAY_TYPE, NUMBER_TYPE), info.getType());
   }
 
   public void testParseTemplatizedType1() throws Exception {
@@ -1310,7 +1316,7 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
   public void testParseDesc9() throws Exception {
     String comment = "@desc\n.\n,\n{\n)\n}\n|\n.<\n>\n<\n?\n~\n+\n-\n;\n:\n*/";
 
-    assertEquals(". , { ) } | .< > < ? ~ + - ; :",
+    assertEquals(". , { ) } | < > < ? ~ + - ; :",
         parse(comment).getDescription());
   }
 
@@ -2352,6 +2358,28 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
         "extra @fileoverview tag");
   }
 
+  public void testPublicVisibilityAllowedInFileOverview() {
+    parseFileOverview("@fileoverview \n * @public */");
+  }
+
+  public void testPackageVisibilityAllowedInFileOverview() {
+    parseFileOverview("@fileoverview \n * @package */");
+  }
+
+  public void testImplicitVisibilityAllowedInFileOverview() {
+    parseFileOverview("@fileoverview */");
+  }
+
+  public void testProtectedVisibilityNotAllowedInFileOverview() {
+    parseFileOverview("@fileoverview \n * @protected */",
+        "protected visibility not allowed in @fileoverview block");
+  }
+
+  public void testPrivateVisibilityNotAllowedInFileOverview() {
+    parseFileOverview("@fileoverview \n @private */",
+        "private visibility not allowed in @fileoverview block");
+  }
+
   public void testReferences() throws Exception {
     JSDocInfo jsdoc
         = parse("@see A cool place!"
@@ -2802,6 +2830,26 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
     assertTypeEquals(STRING_TYPE, jsdoc.getType());
   }
 
+  public void testExportType() throws Exception {
+    JSDocInfo jsdoc = parse("@export {string} descr\n next line */", true);
+    assertTypeEquals(STRING_TYPE, jsdoc.getType());
+
+    assertTrue(jsdoc.isExport());
+
+    Marker defineMarker = jsdoc.getMarkers().iterator().next();
+    assertEquals("export", defineMarker.getAnnotation().getItem());
+    assertTrue(defineMarker.getDescription().getItem().contains("descr"));
+    assertTrue(defineMarker.getDescription().getItem().contains("next line"));
+  }
+
+  public void testMixedVisibility() throws Exception {
+    parse("@public @private */", "extra visibility tag");
+    parse("@public @protected */", "extra visibility tag");
+    parse("@export @protected */", "extra visibility tag");
+    parse("@export {string}\n * @private */", "extra visibility tag");
+    parse("@export {string}\n * @public */", "extra visibility tag");
+  }
+
   public void testStableIdGeneratorConflict() throws Exception {
     parse("/**\n" +
           " * @stableIdGenerator\n" +
@@ -3051,15 +3099,232 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
     parse("@template T := cond(sub(T, R), R, S) =: */");
   }
 
+  public void testParserWithTTLConditionalStringEquivalence() {
+    parse("@template T := cond(streq(R, S), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalStringEquivalence2() {
+    parse("@template T := cond(streq(R, 'foo'), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalStringEquivalence3() {
+    parse("@template T := cond(streq('foo', 'bar'), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsConstructor() {
+    parse("@template T := cond(isCtor(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsConstructor2() {
+    parse("@template T := cond(isCtor('foo'), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsTemplatized() {
+    parse("@template T := cond(isTemplatized(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsTemplatized2() {
+    parse("@template T := cond(isTemplatized('foo'), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsRecord() {
+    parse("@template T := cond(isRecord(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalAndOperation() {
+    parse("@template T := cond(isCtor(R) && isCtor(S), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalOrOperation() {
+    parse("@template T := cond(isCtor(R) || isCtor(S), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalNotOperation() {
+    parse("@template T := cond(!isCtor(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalNestedBoolOperation() {
+    parse("@template T := "
+        + "cond(((isCtor(R) || isCtor(S)) && !isCtor(R)), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsRecord2() {
+    parse("@template T := cond(isRecord('foo'), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsDefined() {
+    parse("@template T := cond(isDefined(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalIsUnknown() {
+    parse("@template T := cond(isUnknown(R), R, S) =: */");
+  }
+
+  public void testParserWithTTLConditionalStringEquivalenceInvalidParam() {
+    parse("@template T := cond(streq('foo', foo()), R, S) =: */",
+        "Bad type annotation. Invalid string",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalStringEquivalenceInvalidParamEmptyStr() {
+    parse("@template T := cond(streq('', S), R, S) =: */",
+        "Bad type annotation. Invalid string parameter",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalIsConstructorInvalidParam() {
+    parse("@template T := cond(isCtor(foo()), R, S) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalIsTemplatizedInvalidParam() {
+    parse("@template T := cond(isTemplatized(foo()), R, S) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalIsRecordInvalidParam() {
+    parse("@template T := cond(isRecord(foo()), R, S) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalIsDefinedInvalidParam() {
+    parse("@template T := cond(isDefined('foo'), R, S) =: */",
+        "Bad type annotation. Invalid name",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalIsUnknownInvalidParam() {
+    parse("@template T := cond(isUnknown(foo()), R, S) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalAndInvalidParam() {
+    parse("@template T := cond('foo' && isCtor(R), R, S) =: */",
+        "Bad type annotation. Invalid boolean expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalAndInvalidParam2() {
+    parse("@template T := cond(isCtor(R) && 'foo', R, S) =: */",
+        "Bad type annotation. Invalid boolean expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalOrInvalidParam() {
+    parse("@template T := cond('foo' || isCtor(R), R, S) =: */",
+        "Bad type annotation. Invalid boolean expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalOrInvalidParam2() {
+    parse("@template T := cond(isCtor(R) || 'foo', R, S) =: */",
+        "Bad type annotation. Invalid boolean expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLConditionalNotInvalidParam() {
+    parse("@template T := cond(!'foo', R, S) =: */",
+        "Bad type annotation. Invalid boolean expression",
+        "Bad type annotation. Invalid expression inside boolean",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
   public void testParserWithTTLExtraParamBoolean() {
     parse("@template T := cond(eq(T, R, S), R, S) =: */",
         "Bad type annotation. Found extra parameter in eq",
         "Bad type annotation. Invalid expression inside conditional");
   }
 
+  public void testParserWithTTLExtraParamStringEq() {
+    parse("@template T := cond(streq(T, R, S), R, S) =: */",
+        "Bad type annotation. Found extra parameter in streq",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLExtraParamIsConstructor() {
+    parse("@template T := cond(isCtor(T, R, S), R, S) =: */",
+        "Bad type annotation. Found extra parameter in isCtor",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLExtraParamIsTemplatized() {
+    parse("@template T := cond(isTemplatized(T, R, S), R, S) =: */",
+        "Bad type annotation. Found extra parameter in isTemplatized",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLExtraParamIsRecord() {
+    parse("@template T := cond(isRecord(T, R), R, S) =: */",
+        "Bad type annotation. Found extra parameter in isRecord",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLExtraParamIsDefined() {
+    parse("@template T := cond(isDefined(T, R), R, S) =: */",
+        "Bad type annotation. Found extra parameter in isDefined",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLExtraParamIsUnknown() {
+    parse("@template T := cond(isUnknown(T, R), R, S) =: */",
+        "Bad type annotation. Found extra parameter in isUnknown",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
   public void testParserWithTTLMissingParamBoolean() {
     parse("@template T := cond(eq(T), R, S) =: */",
         "Bad type annotation. Missing parameter in eq",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamStringEquivalence() {
+    parse("@template T := cond(streq(T), R, S) =: */",
+        "Bad type annotation. Missing parameter in streq",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamIsConstructor() {
+    parse("@template T := cond(isCtor(), R, S) =: */",
+        "Bad type annotation. Missing parameter in isCtor",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamIsTemplatized() {
+    parse("@template T := cond(isTemplatized(), R, S) =: */",
+        "Bad type annotation. Missing parameter in isTemplatized",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamIsRecord() {
+    parse("@template T := cond(isRecord(), R, S) =: */",
+        "Bad type annotation. Missing parameter in isRecord",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamIsDefined() {
+    parse("@template T := cond(isDefined(), R, S) =: */",
+        "Bad type annotation. Missing parameter in isDefined",
+        "Bad type annotation. Invalid expression inside conditional");
+  }
+
+  public void testParserWithTTLMissingParamIsUnknown() {
+    parse("@template T := cond(isUnknown(), R, S) =: */",
+        "Bad type annotation. Missing parameter in isUnknown",
         "Bad type annotation. Invalid expression inside conditional");
   }
 
@@ -3122,7 +3387,8 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
 
   public void testParserWithTTLInvalidMapunionFn() {
     parse("@template T := mapunion(R, S) =: */",
-        "Bad type annotation. Invalid map function");
+        "Bad type annotation. Invalid map function",
+        "Bad type annotation. Invalid expression inside mapunion");
   }
 
   public void testParserWithTTLInvalidMapunionMissingParams() {
@@ -3137,11 +3403,13 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
 
   public void testParserWithTTLInvalidMapunionMissingFnParams() {
     parse("@template T := mapunion(T, () => S) =: */",
-        "Bad type annotation. Missing parameter in map function");
+        "Bad type annotation. Missing parameter in map function",
+        "Bad type annotation. Invalid expression inside mapunion");
   }
   public void testParserWithTTLInvalidMapunionExtraFnParams() {
     parse("@template T := mapunion(T, (S, R) => S) =: */",
-        "Bad type annotation. Found extra parameter in map function");
+        "Bad type annotation. Found extra parameter in map function",
+        "Bad type annotation. Invalid expression inside mapunion");
   }
 
   public void testParserWithTTLInvalidMapunionFunctionBody() {
@@ -3177,6 +3445,42 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
   public void testParserWithTTLInvalidNoneType2() {
     parse("@template T := none(a, b, c) =: */",
         "Bad type annotation. Found extra parameter in none");
+  }
+
+  public void testParserWithTTLAllType() {
+    parse("@template T := all() =: */");
+  }
+
+  public void testParserWithTTLAllType2() {
+    parse("@template T := cond(eq(S, all()), S, T) =: */");
+  }
+
+  public void testParserWithTTLInvalidAllType() {
+    parse("@template T := all(foo) =: */",
+        "Bad type annotation. Found extra parameter in all");
+  }
+
+  public void testParserWithTTLInvalidAllType2() {
+    parse("@template T := all(a, b, c) =: */",
+        "Bad type annotation. Found extra parameter in all");
+  }
+
+  public void testParserWithTTLUnknownType() {
+    parse("@template T := unknown() =: */");
+  }
+
+  public void testParserWithTTLUnknownType2() {
+    parse("@template T := cond(eq(S, unknown()), S, T) =: */");
+  }
+
+  public void testParserWithTTLInvalidUnknownType() {
+    parse("@template T := unknown(foo) =: */",
+        "Bad type annotation. Found extra parameter in unknown");
+  }
+
+  public void testParserWithTTLInvalidUnknownType2() {
+    parse("@template T := unknown(a, b, c) =: */",
+        "Bad type annotation. Found extra parameter in unknown");
   }
 
   public void testParserWithTTLTemplateTypeOperation() {
@@ -3292,6 +3596,68 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
         +                   "0) =: */");
   }
 
+  public void testParserWithTTLValidPrintType() {
+    parse("@template T := printType('msg', R) =: */");
+  }
+
+  public void testParserWithTTLInvalidFirstParamPrintType() {
+    parse("@template T := printType(foo(), R) =: */",
+        "Bad type annotation. Invalid message",
+        "Bad type annotation. Invalid expression inside printType");
+  }
+
+  public void testParserWithTTLInvalidSecondParamPrintType() {
+    parse("@template T := printType('msg', foo()) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside printType");
+  }
+
+  public void testParserWithTTLInvalidPrintTypeExtraParam() {
+    parse("@template T := printType(R, S, U) =: */",
+        "Bad type annotation. Found extra parameter in printType");
+  }
+
+  public void testParserWithTTLInvalidPrintTypeOfMissingParam() {
+    parse("@template T := printType() =: */",
+        "Bad type annotation. Missing parameter in printType");
+  }
+
+  public void testParserWithTTLInvalidPrintTypeOfMissingParam2() {
+    parse("@template T := printType(R) =: */",
+        "Bad type annotation. Missing parameter in printType");
+  }
+
+  public void testParserWithTTLValidPropType() {
+    parse("@template T := propType('p', R) =: */");
+  }
+
+  public void testParserWithTTLInvalidFirstParamPropType() {
+    parse("@template T := propType(foo(), R) =: */",
+        "Bad type annotation. Invalid property name",
+        "Bad type annotation. Invalid expression inside propType");
+  }
+
+  public void testParserWithTTLInvalidSecondParamPropType() {
+    parse("@template T := propType('msg', foo()) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside propType");
+  }
+
+  public void testParserWithTTLInvalidPropTypeExtraParam() {
+    parse("@template T := propType(R, S, U) =: */",
+        "Bad type annotation. Found extra parameter in propType");
+  }
+
+  public void testParserWithTTLInvalidPropTypeOfMissingParam() {
+    parse("@template T := propType() =: */",
+        "Bad type annotation. Missing parameter in propType");
+  }
+
+  public void testParserWithTTLInvalidPropTypeOfMissingParam2() {
+    parse("@template T := propType(R) =: */",
+        "Bad type annotation. Missing parameter in propType");
+  }
+
   public void testParserWithTTLRecordType() {
     parse("@template T := record({prop:T}) =: */");
   }
@@ -3307,9 +3673,14 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
         "Bad type annotation. Missing parameter in record");
   }
 
-  public void testParserWithTTLInvalidRecordTypeExtraParam() {
-    parse("@template T := record({x:'number'}, {y:'number'}) =: */",
-        "Bad type annotation. Found extra parameter in record");
+  public void testParserWithTTLMergeRecords() {
+    parse("@template T := record({x:'number'}, {y:'number'}) =: */");
+  }
+
+  public void testParserWithTTLInvalidMergeRecords() {
+    parse("@template T := record({x:'number'}, foo()) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside record");
   }
 
   public void testParserWithTTLInvalidRecordTypeWithInvalidTypeInProperty() {
@@ -3326,17 +3697,16 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
 
   public void testParserWithTTLInvalidRecordTypeInvalidRecordExpression() {
     parse("@template T := record(foo()) =: */",
-        "Bad type annotation. Invalid record expression");
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside record");
   }
 
-  public void testParserWithTTLInvalidRecordTypeInvalidRecordExpression2() {
-    parse("@template T := record(T) =: */",
-        "Bad type annotation. Invalid record expression");
+  public void testParserWithTTLRecordTypeTypeVars() {
+    parse("@template T := record(T, R) =: */");
   }
 
-  public void testParserWithTTLInvalidRecordTypeInvalidRecordExpression3() {
-    parse("@template T := record({}) =: */",
-        "Bad type annotation. Missing parameter in record expression");
+  public void testParserWithTTLEmptyRecordType() {
+    parse("@template T := record({}) =: */");
   }
 
   public void testParserWithTTLTypeTransformationInFirstParamMapunion() {
@@ -3344,6 +3714,188 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
         + "mapunion(templateTypeOf(type(R, union(S, U)), 0), "
         + "(x) => x) =: */");
   }
+
+  public void testParserWithTTLValidMaprecord() {
+    parse("@template T := maprecord(R, (K, V) => V) =: */");
+  }
+
+  public void testParserWithTTLValidMaprecord2() {
+    parse("@template T := "
+        + "maprecord(record({x:'string', y:'number'}), "
+        + "(K, V) => V) =: */");
+  }
+
+  public void testParserWithTTLInvalidMaprecordFirstParam() {
+    parse("@template T := maprecord(foo(), (K, V) => V) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordNotAFunction() {
+    parse("@template T := maprecord(R, S) =: */",
+        "Bad type annotation. Invalid map function",
+        "Bad type annotation. Invalid expression inside maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordMissingParams() {
+    parse("@template T := maprecord(R) =: */",
+        "Bad type annotation. Missing parameter in maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordExtraParams() {
+    parse("@template T := maprecord(R, (K, V) => V, R) =: */",
+        "Bad type annotation. Found extra parameter in maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordMissingParamsInMapFunction() {
+    parse("@template T := maprecord(R, () => S) =: */",
+        "Bad type annotation. Missing parameter in map function",
+        "Bad type annotation. Invalid expression inside maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordMissingParamsInMapFunction2() {
+    parse("@template T := maprecord(R, (K) => S) =: */",
+        "Bad type annotation. Missing parameter in map function",
+        "Bad type annotation. Invalid expression inside maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordExtraParamsInMapFunction() {
+    parse("@template T := maprecord(R, (K, V, S) => S) =: */",
+        "Bad type annotation. Found extra parameter in map function",
+        "Bad type annotation. Invalid expression inside maprecord");
+  }
+
+  public void testParserWithTTLInvalidMaprecordInvalidFunctionBody() {
+    parse("@template T := maprecord(R, (K, V) => foo()) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside map function body");
+  }
+
+  public void testParserWithTTLTypeOfVar() {
+    parse("@template T := typeOfVar('x') =: */");
+  }
+
+  public void testParserWithTTLTypeOfVar2() {
+    parse("@template T := typeOfVar('x.y') =: */");
+  }
+
+  public void testParserWithTTLTypeOfVarInvalidName() {
+    parse("@template T := typeOfVar(foo()) =: */",
+        "Bad type annotation. Invalid name",
+        "Bad type annotation. Invalid expression inside typeOfVar");
+  }
+
+  public void testParserWithTTLTypeOfVarMissingParam() {
+    parse("@template T := typeOfVar() =: */",
+        "Bad type annotation. Missing parameter in typeOfVar");
+  }
+
+  public void testParserWithTTLTypeOfVarExtraParam() {
+    parse("@template T := typeOfVar(a, b) =: */",
+        "Bad type annotation. Found extra parameter in typeOfVar");
+  }
+
+  public void testParserWithTTLInstanceOf() {
+    parse("@template T := instanceOf('x') =: */");
+  }
+
+  public void testParserWithTTLInstanceOf2() {
+    parse("@template T := instanceOf(R) =: */");
+  }
+
+  public void testParserWithTTLInstanceOfInvalidName() {
+    parse("@template T := instanceOf(foo()) =: */",
+        "Bad type annotation. Invalid type transformation expression",
+        "Bad type annotation. Invalid expression inside instanceOf");
+  }
+
+  public void testParserWithTTLInstanceOfMissingParam() {
+    parse("@template T := instanceOf() =: */",
+        "Bad type annotation. Missing parameter in instanceOf");
+  }
+
+  public void testParserWithTTLInstanceOfExtraParam() {
+    parse("@template T := instanceOf(a, b) =: */",
+        "Bad type annotation. Found extra parameter in instanceOf");
+  }
+
+  public void testParserWithTTLNativeTypeExprBasic() {
+    parse("@template T := typeExpr('string') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprBasic2() {
+    parse("@template T := typeExpr('goog.ui.Menu') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprUnion() {
+    parse("@template T := typeExpr('number|boolean') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprRecord() {
+    parse("@template T := typeExpr('{myNum: number, myObject} ') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprNullable() {
+    parse("@template T := typeExpr('?number') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprNonNullable() {
+    parse("@template T := typeExpr('!Object') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunction() {
+    parse("@template T := typeExpr('function(string, boolean)') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunctionReturn() {
+    parse("@template T := typeExpr('function(): number') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunctionThis() {
+    parse("@template T := typeExpr('function(this:goog.ui.Menu, string)') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunctionNew() {
+    parse("@template T := typeExpr('function(new:goog.ui.Menu, string)') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunctionVarargs() {
+    parse("@template T := typeExpr('function(string, ...[number]): number') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprFunctionOptional() {
+    parse("@template T := typeExpr('function(?string=, number=)') =: */");
+  }
+
+  public void testParserWithTTLNativeTypeExprMissingParam() {
+    parse("@template T := typeExpr() =: */",
+        "Bad type annotation. Missing parameter in typeExpr");
+  }
+
+  public void testParserWithTTLNativeTypeExprExtraParam() {
+    parse("@template T := typeExpr('a', 'b') =: */",
+        "Bad type annotation. Found extra parameter in typeExpr");
+  }
+
+  public void testParserWithTTLNativeInvalidTypeExpr() {
+    parse("@template T := typeExpr(foo) =: */",
+        "Bad type annotation. Invalid native type expression",
+        "Bad type annotation. Invalid expression inside typeExpr");
+  }
+
+  public void testParserWithTTLAsynchUseCase() {
+    parse("@template R := "
+        + "cond(eq(T, 'Object'),\n"
+        +       "maprecord(T, \n"
+        +       "(K, V) => cond(eq(rawTypeOf(V), 'Promise'),\n"
+        +                   "templateTypeOf(V, 0),\n"
+        +                   "'undefined') "
+        +               "),\n"
+        +       "T)"
+        + "=: */");
+  }
+
+
 
   public void testWhitelistedNewAnnotations() {
     parse("@foobar */",
@@ -3717,7 +4269,7 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
     TestErrorReporter testErrorReporter = new TestErrorReporter(null, warnings);
     Config config =
         new Config(extraAnnotations, extraSuppressions,
-            true, true, LanguageMode.ECMASCRIPT3, false);
+            true, LanguageMode.ECMASCRIPT3, false);
 
     ParseResult result = ParserRunner.parse(
         new SimpleSourceFile("source", false), code, config, testErrorReporter);
@@ -3751,8 +4303,7 @@ public class JsDocInfoParserTest extends BaseJSTypeTestCase {
     TestErrorReporter errorReporter = new TestErrorReporter(null, warnings);
 
     Config config = new Config(extraAnnotations, extraSuppressions,
-        parseDocumentation, parseDocumentation,
-        LanguageMode.ECMASCRIPT3, false);
+        parseDocumentation, LanguageMode.ECMASCRIPT3, false);
     StaticSourceFile file = new SimpleSourceFile("testcode", false);
     Node associatedNode = new Node(Token.SCRIPT);
     associatedNode.setInputId(new InputId(file.getName()));

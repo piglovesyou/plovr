@@ -40,6 +40,7 @@
 package com.google.javascript.rhino;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -130,8 +131,24 @@ public class JSDocInfo implements Serializable {
 
     @Override
     public String toString() {
-      return com.google.common.base.Objects.toStringHelper(this)
-          .add("bitfield", propertyBitField)
+      return MoreObjects.toStringHelper(this)
+          .add("bitfield", (propertyBitField == 0)
+                           ? null : Integer.toHexString(propertyBitField))
+          .add("baseType", baseType)
+          .add("extendedInterfaces", extendedInterfaces)
+          .add("implementedInterfaces", implementedInterfaces)
+          .add("parameters", parameters)
+          .add("thrownTypes", thrownTypes)
+          .add("templateTypeNames", templateTypeNames)
+          .add("disposedParameters", disposedParameters)
+          .add("typeTransformations", typeTransformations)
+          .add("description", description)
+          .add("meaning", meaning)
+          .add("deprecated", deprecated)
+          .add("license", license)
+          .add("suppressions", suppressions)
+          .add("lendsName", lendsName)
+          .omitNullValues()
           .toString();
     }
 
@@ -332,6 +349,11 @@ public class JSDocInfo implements Serializable {
    * The type for {@link #getThisType()}.
    */
   private JSTypeExpression thisType = null;
+
+  /**
+   * Whether the type annotation was inlined.
+   */
+  private boolean inlineType = false;
 
   /**
    * Whether to include documentation.
@@ -1215,7 +1237,8 @@ public class JSDocInfo implements Serializable {
 
   /**
    * Returns the set of names of the defined parameters. The iteration order
-   * of the returned set is not the order in which parameters are defined.
+   * of the returned set is the order in which parameters are defined in the
+   * JSDoc, rather than the order in which the function declares them.
    *
    * @return the set of names of the defined parameters. The returned set is
    *     immutable.
@@ -1239,6 +1262,10 @@ public class JSDocInfo implements Serializable {
 
   void setType(JSTypeExpression type) {
     setType(type, TYPEFIELD_TYPE);
+  }
+
+  void setInlineType() {
+    this.inlineType = true;
   }
 
   void setReturnType(JSTypeExpression type) {
@@ -1314,6 +1341,13 @@ public class JSDocInfo implements Serializable {
    */
   public JSTypeExpression getType() {
     return getType(TYPEFIELD_TYPE);
+  }
+
+  /**
+   * Returns whether the type annotation was inlined.
+   */
+  public boolean isInlineType() {
+    return inlineType;
   }
 
   /**
@@ -1555,10 +1589,15 @@ public class JSDocInfo implements Serializable {
 
   @VisibleForTesting
   public String toStringVerbose() {
-    return com.google.common.base.Objects.toStringHelper(this)
+    return MoreObjects.toStringHelper(this)
+        .add("bitset", (bitset == 0) ? null : Integer.toHexString(bitset))
+        .add("documentation", documentation)
         .add("info", info)
-        .add("bitset", Integer.toHexString(bitset))
         .add("originalComment", getOriginalCommentString())
+        .add("thisType", thisType)
+        .add("type", type)
+        .add("visibility", visibility)
+        .omitNullValues()
         .toString();
   }
 

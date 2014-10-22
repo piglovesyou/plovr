@@ -18,6 +18,7 @@ package com.google.javascript.jscomp;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
@@ -1516,6 +1517,69 @@ public class NodeUtilTest extends TestCase {
     assertTrue(NodeUtil.mayBeString(getNode("(1+[])")));
   }
 
+  public void test1() {
+    assertFalse(NodeUtil.isStringResult(getNode("a+b")));
+  }
+
+  public void testIsStringResult() {
+    assertFalse(NodeUtil.isStringResult(getNode("1")));
+    assertFalse(NodeUtil.isStringResult(getNode("true")));
+    assertFalse(NodeUtil.isStringResult(getNode("+true")));
+    assertFalse(NodeUtil.isStringResult(getNode("+1")));
+    assertFalse(NodeUtil.isStringResult(getNode("-1")));
+    assertFalse(NodeUtil.isStringResult(getNode("-Infinity")));
+    assertFalse(NodeUtil.isStringResult(getNode("Infinity")));
+    assertFalse(NodeUtil.isStringResult(getNode("NaN")));
+    assertFalse(NodeUtil.isStringResult(getNode("undefined")));
+    assertFalse(NodeUtil.isStringResult(getNode("void 0")));
+    assertFalse(NodeUtil.isStringResult(getNode("null")));
+
+    assertFalse(NodeUtil.isStringResult(getNode("a << b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a >> b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a >>> b")));
+
+    assertFalse(NodeUtil.isStringResult(getNode("a == b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a != b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a === b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a !== b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a < b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a > b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a <= b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a >= b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a in b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a instanceof b")));
+
+    assertTrue(NodeUtil.isStringResult(getNode("'a'")));
+    assertTrue(NodeUtil.isStringResult(getNode("'a'+b")));
+    assertTrue(NodeUtil.isStringResult(getNode("a+'b'")));
+    assertFalse(NodeUtil.isStringResult(getNode("a+b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a()")));
+    assertFalse(NodeUtil.isStringResult(getNode("''.a")));
+    assertFalse(NodeUtil.isStringResult(getNode("a.b")));
+    assertFalse(NodeUtil.isStringResult(getNode("a.b()")));
+    assertFalse(NodeUtil.isStringResult(getNode("a().b()")));
+    assertFalse(NodeUtil.isStringResult(getNode("new a()")));
+
+    // These can't be strings but they aren't handled yet.
+    assertFalse(NodeUtil.isStringResult(getNode("1 && 2")));
+    assertFalse(NodeUtil.isStringResult(getNode("1 || 2")));
+    assertFalse(NodeUtil.isStringResult(getNode("1 ? 2 : 3")));
+    assertFalse(NodeUtil.isStringResult(getNode("1,2")));
+    assertFalse(NodeUtil.isStringResult(getNode("a=1")));
+    assertFalse(NodeUtil.isStringResult(getNode("1+1")));
+    assertFalse(NodeUtil.isStringResult(getNode("true+true")));
+    assertFalse(NodeUtil.isStringResult(getNode("null+null")));
+    assertFalse(NodeUtil.isStringResult(getNode("NaN+NaN")));
+
+    // These are not strings but they aren't primitives either
+    assertFalse(NodeUtil.isStringResult(getNode("([1,2])")));
+    assertFalse(NodeUtil.isStringResult(getNode("({a:1})")));
+    assertFalse(NodeUtil.isStringResult(getNode("({}+1)")));
+    assertFalse(NodeUtil.isStringResult(getNode("(1+{})")));
+    assertFalse(NodeUtil.isStringResult(getNode("([]+1)")));
+    assertFalse(NodeUtil.isStringResult(getNode("(1+[])")));
+  }
+
   public void testValidNames() {
     assertTrue(NodeUtil.isValidPropertyName("a"));
     assertTrue(NodeUtil.isValidPropertyName("a3"));
@@ -1642,9 +1706,12 @@ public class NodeUtilTest extends TestCase {
     assertFalse(executedOnceTestCase("if (1) { try {} finally {x} }"));
   }
 
-  public void testNewQualifiedNameNode1() {
-    Node actual = NodeUtil.newQualifiedNameNode(
-        new GoogleCodingConvention(), "ns.prop");
+  public void testNewQName1() {
+    Compiler compiler = new Compiler();
+    CompilerOptions options = new CompilerOptions();
+    options.setCodingConvention(new GoogleCodingConvention());
+    compiler.init(ImmutableList.<SourceFile>of(), ImmutableList.<SourceFile>of(), options);
+    Node actual = NodeUtil.newQName(compiler, "ns.prop");
     Node expected = IR.getprop(
         IR.name("ns"),
         IR.string("prop"));
@@ -1652,8 +1719,11 @@ public class NodeUtilTest extends TestCase {
   }
 
   public void testNewQualifiedNameNode2() {
-    Node actual = NodeUtil.newQualifiedNameNode(
-        new GoogleCodingConvention(), "this.prop");
+    Compiler compiler = new Compiler();
+    CompilerOptions options = new CompilerOptions();
+    options.setCodingConvention(new GoogleCodingConvention());
+    compiler.init(ImmutableList.<SourceFile>of(), ImmutableList.<SourceFile>of(), options);
+    Node actual = NodeUtil.newQName(compiler, "this.prop");
     Node expected = IR.getprop(
         IR.thisNode(),
         IR.string("prop"));

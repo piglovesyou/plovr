@@ -19,6 +19,8 @@ package com.google.javascript.jscomp;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.javascript.jscomp.lint.CheckEnums;
+import com.google.javascript.jscomp.lint.CheckInterfaces;
 import com.google.javascript.jscomp.lint.CheckNullableReturn;
 
 import java.util.Map;
@@ -79,6 +81,7 @@ public class DiagnosticGroups {
   static final String DIAGNOSTIC_GROUP_NAMES =
       "accessControls, ambiguousFunctionDecl, checkEventfulObjectDisposal, " +
       "checkRegExp, checkStructDictInheritance, checkTypes, checkVars, " +
+      "conformanceViolations, " +
       "const, constantProperty, deprecated, duplicateMessage, es3, " +
       "es5Strict, externsValidation, fileoverviewTags, globalThis, " +
       "inferredConstCheck, " +
@@ -107,6 +110,7 @@ public class DiagnosticGroups {
       DiagnosticGroups.registerGroup("visibility",
           CheckAccessControls.BAD_PRIVATE_GLOBAL_ACCESS,
           CheckAccessControls.BAD_PRIVATE_PROPERTY_ACCESS,
+          CheckAccessControls.BAD_PACKAGE_PROPERTY_ACCESS,
           CheckAccessControls.BAD_PROTECTED_PROPERTY_ACCESS,
           CheckAccessControls.EXTEND_FINAL_CLASS,
           CheckAccessControls.PRIVATE_OVERRIDE,
@@ -120,7 +124,8 @@ public class DiagnosticGroups {
   public static final DiagnosticGroup NON_STANDARD_JSDOC =
       DiagnosticGroups.registerGroup("nonStandardJsDocs",
           RhinoErrorReporter.BAD_JSDOC_ANNOTATION,
-          RhinoErrorReporter.INVALID_PARAM);
+          RhinoErrorReporter.INVALID_PARAM,
+          RhinoErrorReporter.JSDOC_IN_BLOCK_COMMENT);
 
   public static final DiagnosticGroup INVALID_CASTS =
       DiagnosticGroups.registerGroup("invalidCasts",
@@ -321,10 +326,16 @@ public class DiagnosticGroups {
           CheckSuspiciousCode.SUSPICIOUS_IN_OPERATOR,
           CheckSuspiciousCode.SUSPICIOUS_INSTANCEOF_LEFT_OPERAND);
 
-  // NOTE(tbreisacher): The checks in this DiagnosticGroup are still
-  // experimental. Use them at your own risk!
+  // These checks are not intended to be enabled as errors. It is
+  // recommended that you think of them as "linter" warnings that
+  // provide optional suggestions.
   public static final DiagnosticGroup LINT_CHECKS =
       DiagnosticGroups.registerGroup("lintChecks",
+          CheckEnums.DUPLICATE_ENUM_VALUE,
+          // TODO(tbreisacher): Consider moving the CheckInterfaces warnings into the
+          // checkTypes DiagnosticGroup
+          CheckInterfaces.INTERFACE_FUNCTION_NOT_EMPTY,
+          CheckInterfaces.INTERFACE_SHOULD_NOT_TAKE_ARGS,
           CheckNullableReturn.NULLABLE_RETURN,
           CheckNullableReturn.NULLABLE_RETURN_WITH_NAME);
 
@@ -342,6 +353,11 @@ public class DiagnosticGroups {
           PeepholeFoldConstants.BITWISE_OPERAND_OUT_OF_RANGE,
           PeepholeFoldConstants.SHIFT_AMOUNT_OUT_OF_BOUNDS,
           PeepholeFoldConstants.FRACTIONAL_BITWISE_OPERAND);
+
+  public static final DiagnosticGroup CONFORMANCE_VIOLATIONS =
+      DiagnosticGroups.registerGroup("conformanceViolations",
+          CheckConformance.CONFORMANCE_VIOLATION,
+          CheckConformance.CONFORMANCE_POSSIBLE_VIOLATION);
 
   /**
    * Adds warning levels by name.

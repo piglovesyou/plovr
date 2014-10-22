@@ -56,6 +56,7 @@ import java.util.Set;
  * <p>Checks the types of JS expressions against any declared type
  * information.</p>
  *
+ * @author nicksantos@google.com (Nick Santos)
  */
 public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
 
@@ -147,9 +148,9 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
           "interface members can only be empty property declarations,"
           + " empty functions{0}");
 
-  static final DiagnosticType INTERFACE_FUNCTION_NOT_EMPTY =
+  static final DiagnosticType INTERFACE_METHOD_NOT_EMPTY =
       DiagnosticType.warning(
-          "JSC_INTERFACE_FUNCTION_NOT_EMPTY",
+          "JSC_INTERFACE_METHOD_NOT_EMPTY",
           "interface member functions must have an empty body");
 
   static final DiagnosticType CONFLICTING_SHAPE_TYPE =
@@ -265,7 +266,7 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
       ENUM_DUP,
       ENUM_NOT_CONSTANT,
       INVALID_INTERFACE_MEMBER_DECLARATION,
-      INTERFACE_FUNCTION_NOT_EMPTY,
+      INTERFACE_METHOD_NOT_EMPTY,
       CONFLICTING_SHAPE_TYPE,
       CONFLICTING_EXTENDED_TYPE,
       CONFLICTING_IMPLEMENTED_TYPE,
@@ -1358,7 +1359,7 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
     if (assign.getLastChild().isFunction()
         && !NodeUtil.isEmptyBlock(assign.getLastChild().getLastChild())) {
       compiler.report(
-          t.makeError(object, INTERFACE_FUNCTION_NOT_EMPTY,
+          t.makeError(object, INTERFACE_METHOD_NOT_EMPTY,
               abstractMethodName));
     }
   }
@@ -1688,16 +1689,21 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
     }
     for (String name : currentPropertyNames) {
       ObjectType oType = properties.get(name);
-      if (oType != null) {
-        if (!interfaceType.getPropertyType(name).isEquivalentTo(
-            oType.getPropertyType(name))) {
-          compiler.report(
-              t.makeError(n, INCOMPATIBLE_EXTENDED_PROPERTY_TYPE,
-                  functionName, name, oType.toString(),
-                  interfaceType.toString()));
-        }
-      }
       currentProperties.put(name, interfaceType);
+      if (oType != null) {
+        JSType thisPropType = interfaceType.getPropertyType(name);
+        JSType oPropType = oType.getPropertyType(name);
+        if (thisPropType.isEquivalentTo(oPropType)
+            || thisPropType.isFunctionType() && oPropType.isFunctionType()
+               && thisPropType.toMaybeFunctionType().hasEqualCallType(
+                  oPropType.toMaybeFunctionType())) {
+          continue;
+        }
+        compiler.report(
+            t.makeError(n, INCOMPATIBLE_EXTENDED_PROPERTY_TYPE,
+                functionName, name, oType.toString(),
+                interfaceType.toString()));
+      }
     }
     for (ObjectType iType : interfaceType.getCtorExtendedInterfaces()) {
       checkInterfaceConflictProperties(t, n, functionName, properties,

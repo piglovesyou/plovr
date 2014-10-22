@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -41,6 +43,7 @@ public class NominalType {
   //    this represents a completely instantiated generic type (Foo.<number>).
   private final ImmutableMap<String, JSType> typeMap;
   private final RawNominalType rawType;
+  private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d+");
 
   private NominalType(
       ImmutableMap<String, JSType> typeMap, RawNominalType rawType) {
@@ -69,6 +72,10 @@ public class NominalType {
     return rawType.isDict();
   }
 
+  public boolean isUninstantiatedGenericType() {
+    return rawType.isGeneric() && typeMap.isEmpty();
+  }
+
   NominalType instantiateGenerics(List<JSType> types) {
     Preconditions.checkState(types.size() == rawType.typeParameters.size());
     Map<String, JSType> typeMap = new HashMap<>();
@@ -82,7 +89,7 @@ public class NominalType {
     if (newTypeMap.isEmpty()) {
       return this;
     }
-    if (!rawType.isGeneric() && !hasFreeTypeVars(new HashSet<String>())) {
+    if (!this.rawType.isGeneric()) {
       return this.rawType.wrappedAsNominal;
     }
     ImmutableMap.Builder<String, JSType> builder = ImmutableMap.builder();
@@ -101,15 +108,6 @@ public class NominalType {
     return new NominalType(builder.build(), this.rawType);
   }
 
-  boolean hasFreeTypeVars(Set<String> boundTypeVars) {
-    for (JSType t : typeMap.values()) {
-      if (t.hasFreeTypeVars(boundTypeVars)) {
-        return true;
-      }
-    }
-    return rawType.hasFreeTypeVars(boundTypeVars);
-  }
-
   // Methods that delegate to RawNominalType
   public String getName() {
     return rawType.name;
@@ -125,7 +123,7 @@ public class NominalType {
   }
 
   public boolean isInterface() {
-    return !rawType.isClass();
+    return rawType.isInterface();
   }
 
   /** True iff it has all properties and the RawNominalType is immutable */
@@ -159,13 +157,25 @@ public class NominalType {
   }
 
   Property getProp(String pname) {
+    if (rawType.name.equals("Array")
+        && NUMERIC_PATTERN.matcher(pname).matches()) {
+      if (typeMap.isEmpty()) {
+        return Property.make(JSType.UNKNOWN, null);
+      }
+      Preconditions.checkState(typeMap.size() == 1);
+      JSType elmType = Iterables.getOnlyElement(typeMap.values());
+      return Property.make(elmType, null);
+    }
     Property p = rawType.getProp(pname);
     return p == null ? null : p.substituteGenerics(typeMap);
   }
 
   public JSType getPropDeclaredType(String pname) {
-    JSType type = rawType.getPropDeclaredType(pname);
-    return type == null ? null : type.substituteGenerics(typeMap);
+    JSType type = rawType.getInstancePropDeclaredType(pname);
+    if (type == null) {
+      return null;
+    }
+    return type.substituteGenerics(typeMap);
   }
 
   public boolean hasConstantProp(String pname) {
@@ -173,9 +183,8 @@ public class NominalType {
     return p != null && p.isConstant();
   }
 
-  JSType createConstructorObject(FunctionType ctorFn) {
-    Preconditions.checkState(typeMap.isEmpty());
-    return rawType.createConstructorObject(ctorFn);
+  static JSType createConstructorObject(FunctionType ctorFn) {
+    return ctorFn.nominalType.rawType.createConstructorObject(ctorFn);
   }
 
   boolean isSubclassOf(NominalType other) {
@@ -202,12 +211,7 @@ public class NominalType {
     // interface <: interface
     if (rawType.isInterface && otherRawType.isInterface) {
       if (rawType.equals(otherRawType)) {
-        for (String typeVar : rawType.getTypeParameters()) {
-          if (!typeMap.get(typeVar).isSubtypeOf(other.typeMap.get(typeVar))) {
-            return false;
-          }
-        }
-        return true;
+        return areTypeParametersSubtypes(other);
       } else if (rawType.interfaces == null) {
         return false;
       } else {
@@ -222,22 +226,51 @@ public class NominalType {
 
     // class <: class
     if (rawType.equals(otherRawType)) {
-      for (String typeVar : rawType.getTypeParameters()) {
-        Preconditions.checkState(typeMap.containsKey(typeVar),
-            "Type variable %s not in the domain: %s",
-            typeVar, typeMap.keySet());
-        Preconditions.checkState(other.typeMap.containsKey(typeVar));
-        if (!typeMap.get(typeVar).isSubtypeOf(other.typeMap.get(typeVar))) {
-          return false;
-        }
-      }
-      return true;
+      return areTypeParametersSubtypes(other);
     } else if (rawType.superClass == null) {
       return false;
     } else {
       return rawType.superClass.instantiateGenerics(typeMap)
           .isSubclassOf(other);
     }
+  }
+
+  private boolean areTypeParametersSubtypes(NominalType other) {
+    Preconditions.checkState(rawType.equals(other.rawType));
+    if (typeMap.isEmpty()) {
+      return other.instantiationIsUnknownOrIdentity();
+    }
+    if (other.typeMap.isEmpty()) {
+      return instantiationIsUnknownOrIdentity();
+    }
+    for (String typeVar : rawType.getTypeParameters()) {
+      Preconditions.checkState(typeMap.containsKey(typeVar),
+          "Type variable %s not in the domain: %s",
+          typeVar, typeMap.keySet());
+      Preconditions.checkState(other.typeMap.containsKey(typeVar),
+          "Other (%s) doesn't contain mapping (%s->%s) from this (%s)",
+          other, typeVar, typeMap.get(typeVar), this);
+      if (!typeMap.get(typeVar).isSubtypeOf(other.typeMap.get(typeVar))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean instantiationIsUnknownOrIdentity() {
+    if (this.typeMap.isEmpty()) {
+      return true;
+    }
+    for (String typeVar : this.rawType.getTypeParameters()) {
+      Preconditions.checkState(this.typeMap.containsKey(typeVar),
+          "Type variable %s not in the domain: %s",
+          typeVar, this.typeMap.keySet());
+      JSType t = this.typeMap.get(typeVar);
+      if (!t.isUnknown() && !t.equals(JSType.fromTypeVar(typeVar))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // A special-case of join
@@ -356,15 +389,6 @@ public class NominalType {
           this.wrappedAsJSType);
     }
 
-    private enum HasFreeTypeVars {
-      UNKNOWN,
-      CHECKING_NOW, // Used to detect recursion and stop
-      TRUE,
-      FALSE;
-    }
-    private HasFreeTypeVars hasFreeTypeVars =
-        HasFreeTypeVars.UNKNOWN;
-
     public static RawNominalType makeUnrestrictedClass(
         QualifiedName name, ImmutableList<String> typeParameters) {
       return new RawNominalType(
@@ -396,6 +420,10 @@ public class NominalType {
 
     public boolean isClass() {
       return !isInterface;
+    }
+
+    public boolean isInterface() {
+      return isInterface;
     }
 
     boolean isGeneric() {
@@ -537,7 +565,7 @@ public class NominalType {
       return getProp(pname) != null;
     }
 
-    public JSType getPropDeclaredType(String pname) {
+    public JSType getInstancePropDeclaredType(String pname) {
       Property p = getProp(pname);
       if (p == null) {
         return null;
@@ -545,6 +573,7 @@ public class NominalType {
         return superClass.getPropDeclaredType(pname);
       }
       return p.getDeclaredType();
+
     }
 
     public Set<String> getAllOwnProps() {
@@ -575,60 +604,12 @@ public class NominalType {
       if (allProps == null) {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
         if (superClass != null) {
-          Preconditions.checkState(superClass.typeMap.isEmpty());
           builder.addAll(superClass.rawType.getAllPropsOfClass());
         }
         allProps = builder
             .addAll(classProps.keySet()).addAll(protoProps.keySet()).build();
       }
       return allProps;
-    }
-
-    // During finalizeNominalType, we compute the value of the hasFreeTypeVars
-    // field by calling this function, and subsequent queries do no computation.
-    private boolean hasFreeTypeVars(Set<String> boundTypeVars) {
-      switch (hasFreeTypeVars) {
-        case UNKNOWN:
-          hasFreeTypeVars = HasFreeTypeVars.CHECKING_NOW;
-          break;
-        case CHECKING_NOW:
-          hasFreeTypeVars = HasFreeTypeVars.FALSE;
-          return false;
-        case TRUE:
-          return true;
-        case FALSE:
-          return false;
-      }
-      if (isGeneric()) {
-        boundTypeVars.addAll(typeParameters);
-      }
-      for (Property prop : classProps.values()) {
-        if (prop.hasFreeTypeVars(boundTypeVars)) {
-          hasFreeTypeVars = HasFreeTypeVars.TRUE;
-          return true;
-        }
-      }
-      for (Property prop : protoProps.values()) {
-        if (prop.hasFreeTypeVars(boundTypeVars)) {
-          hasFreeTypeVars = HasFreeTypeVars.TRUE;
-          return true;
-        }
-      }
-      if (interfaces != null) {
-        for (NominalType nt : interfaces) {
-          if (nt.hasFreeTypeVars(boundTypeVars)) {
-            hasFreeTypeVars = HasFreeTypeVars.TRUE;
-            return true;
-          }
-        }
-      }
-      if (superClass != null && superClass.hasFreeTypeVars(boundTypeVars)) {
-        hasFreeTypeVars = HasFreeTypeVars.TRUE;
-        return true;
-      } else {
-        hasFreeTypeVars = HasFreeTypeVars.FALSE;
-        return false;
-      }
     }
 
     //////////// Class Properties
@@ -758,9 +739,6 @@ public class NominalType {
         this.interfaces = ImmutableSet.of();
       }
       addCtorProperty("prototype", createProtoObject(), false);
-      hasFreeTypeVars(new HashSet<String>());
-      Preconditions.checkState(hasFreeTypeVars == HasFreeTypeVars.TRUE
-          || hasFreeTypeVars == HasFreeTypeVars.FALSE);
       this.isFinalized = true;
       return this;
     }

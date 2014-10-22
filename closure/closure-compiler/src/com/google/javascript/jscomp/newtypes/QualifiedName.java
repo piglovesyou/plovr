@@ -44,12 +44,14 @@ public class QualifiedName {
         .addAll(lhs.parts).addAll(rhs.parts).build());
   }
 
-  public static QualifiedName fromGetprop(Node getprop) {
-    if (getprop == null || !getprop.isQualifiedName()) {
+  public static QualifiedName fromNode(Node qnameNode) {
+    if (qnameNode == null || !qnameNode.isQualifiedName()) {
       return null;
     }
-    return new QualifiedName(ImmutableList.copyOf(
-        Splitter.on('.').split(getprop.getQualifiedName())));
+    return qnameNode.isName()
+        ? new QualifiedName(qnameNode.getString())
+        : new QualifiedName(ImmutableList.copyOf(
+              Splitter.on('.').split(qnameNode.getQualifiedName())));
   }
 
   public static QualifiedName fromQname(String qname) {
@@ -62,10 +64,6 @@ public class QualifiedName {
     return parts.size() == 1;
   }
 
-  public int size() {
-    return parts.size();
-  }
-
   public QualifiedName getAllButLeftmost() {
     Preconditions.checkArgument(!isIdentifier());
     return new QualifiedName(parts.subList(1, parts.size()));
@@ -75,12 +73,12 @@ public class QualifiedName {
     return parts.get(0);
   }
 
-  QualifiedName getAllButRightmost() {
+  public QualifiedName getAllButRightmost() {
     Preconditions.checkArgument(!isIdentifier());
     return new QualifiedName(parts.subList(0, parts.size() - 1));
   }
 
-  String getRightmostName() {
+  public String getRightmostName() {
     return parts.get(parts.size() - 1);
   }
 

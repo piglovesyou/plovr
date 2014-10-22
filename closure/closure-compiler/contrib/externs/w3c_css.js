@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 The Closure Compiler Authors.
+ * Copyright 2014 The Closure Compiler Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package com.google.javascript.jscomp.parsing.parser.util;
+/**
+ * @fileoverview Externs for CSS Will Change Module Level 1
+ * @see http://www.w3.org/TR/css-will-change/
+ * @externs
+ */
 
 /**
- * An error reporter that doesn't output errors; it just records
- * whether an error occurred.
- *
- * <p>{@code MutedErrorReporter} instances are used by the parser to
- * observe whether speculative parses fail before committing to
- * parsing them.
+ * @type {string}
+ * @see http://www.w3.org/TR/css-will-change-1/#will-change
  */
-public class MutedErrorReporter extends ErrorReporter {
-  public MutedErrorReporter() {}
-
-  @Override
-  protected void reportMessage(SourcePosition location, String message) {
-    // message.dropOn(floor);
-  }
-}
+CSSProperties.prototype.willChange;

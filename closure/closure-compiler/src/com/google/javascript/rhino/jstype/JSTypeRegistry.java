@@ -178,27 +178,17 @@ public class JSTypeRegistry implements Serializable {
   // there are no template types.
   private final TemplateTypeMap emptyTemplateTypeMap;
 
-  private final boolean tolerateUndefinedValues;
-
-  /**
-   * Constructs a new type registry populated with the built-in types.
-   */
-  public JSTypeRegistry(ErrorReporter reporter) {
-    this(reporter, false);
-  }
-
   /**
    * Constructs a new type registry populated with the built-in types.
    */
   public JSTypeRegistry(
-      ErrorReporter reporter, boolean tolerateUndefinedValues) {
+      ErrorReporter reporter) {
     this.reporter = reporter;
     this.emptyTemplateTypeMap = new TemplateTypeMap(
         this, ImmutableList.<TemplateType>of(), ImmutableList.<JSType>of());
     nativeTypes = new JSType[JSTypeNative.values().length];
     namesToTypes = new HashMap<String, JSType>();
     resetForTypeCheck();
-    this.tolerateUndefinedValues = tolerateUndefinedValues;
   }
 
   /**
@@ -220,10 +210,6 @@ public class JSTypeRegistry implements Serializable {
 
   public ErrorReporter getErrorReporter() {
     return reporter;
-  }
-
-  public boolean shouldTolerateUndefinedValues() {
-    return tolerateUndefinedValues;
   }
 
   /**
@@ -278,11 +264,13 @@ public class JSTypeRegistry implements Serializable {
     // Object
     FunctionType OBJECT_FUNCTION_TYPE =
         new FunctionType(this, "Object", null,
-            createArrowType(createOptionalParameters(ALL_TYPE), UNKNOWN_TYPE),
+            createArrowType(createOptionalParameters(ALL_TYPE), null),
             null,
             createTemplateTypeMap(ImmutableList.of(
                 objectIndexTemplateKey, objectElementTemplateKey), null),
             true, true);
+    OBJECT_FUNCTION_TYPE.getInternalArrowType().returnType =
+        OBJECT_FUNCTION_TYPE.getInstanceType();
 
     OBJECT_FUNCTION_TYPE.setPrototype(TOP_LEVEL_PROTOTYPE, null);
     registerNativeType(JSTypeNative.OBJECT_FUNCTION_TYPE, OBJECT_FUNCTION_TYPE);
@@ -1012,9 +1000,7 @@ public class JSTypeRegistry implements Serializable {
       // not be wrapped.
       return type;
     } else {
-      return shouldTolerateUndefinedValues()
-        ? createOptionalNullableType(type)
-        : createNullableType(type);
+      return createNullableType(type);
     }
   }
 
@@ -1398,7 +1384,8 @@ public class JSTypeRegistry implements Serializable {
    * @param info Used to mark object literals as structs; can be {@code null}
    */
   public ObjectType createAnonymousObjectType(JSDocInfo info) {
-    PrototypeObjectType type = new PrototypeObjectType(this, null, null);
+    PrototypeObjectType type = new PrototypeObjectType(
+        this, null, null, true /* anonymousType */);
     type.setPrettyPrint(true);
     type.setJSDocInfo(info);
     return type;

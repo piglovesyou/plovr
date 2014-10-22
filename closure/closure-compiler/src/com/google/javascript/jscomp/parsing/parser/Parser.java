@@ -16,10 +16,13 @@
 
 package com.google.javascript.jscomp.parsing.parser;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.javascript.jscomp.parsing.parser.trees.*;
 import com.google.javascript.jscomp.parsing.parser.util.ErrorReporter;
-import com.google.javascript.jscomp.parsing.parser.util.MutedErrorReporter;
+import com.google.javascript.jscomp.parsing.parser.util.LookaheadErrorReporter;
+import com.google.javascript.jscomp.parsing.parser.util.LookaheadErrorReporter.ParseException;
 import com.google.javascript.jscomp.parsing.parser.util.SourcePosition;
 import com.google.javascript.jscomp.parsing.parser.util.SourceRange;
 import com.google.javascript.jscomp.parsing.parser.util.Timer;
@@ -99,15 +102,16 @@ public class Parser {
       ES6_STRICT,
     }
 
+    public final boolean atLeast6;
+    public final boolean atLeast5;
     public final boolean isStrictMode;
     public final boolean warnTrailingCommas;
     public final boolean warnLineContinuations;
     public final boolean warnES6NumberLiteral;
 
     public Config(Mode mode) {
-      boolean atLeast6 = mode == Mode.ES6 || mode == Mode.ES6_STRICT;
-      boolean atLeast5 =
-          atLeast6 || mode == Mode.ES5 || mode == Mode.ES5_STRICT;
+      atLeast6 = mode == Mode.ES6 || mode == Mode.ES6_STRICT;
+      atLeast5 = atLeast6 || mode == Mode.ES5 || mode == Mode.ES5_STRICT;
       this.isStrictMode = mode == Mode.ES5_STRICT || mode == Mode.ES6_STRICT;
 
       // Generally, we allow everything that is valid in any mode
@@ -164,13 +168,8 @@ public class Parser {
 
   // ImportDeclaration
   // ExportDeclaration
-  // ModuleDeclaration
   // SourceElement
   private ParseTree parseScriptElement() {
-    if (peekModuleDeclaration()) {
-      return parseModuleDeclaration();
-    }
-
     if (peekImportDeclaration()) {
       return parseImportDeclaration();
     }
@@ -180,26 +179,6 @@ public class Parser {
     }
 
     return parseSourceElement();
-  }
-
-  // module [no LineTerminator here] indentifier from stringliteral ;
-  // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-imports
-  private boolean peekModuleDefinition() {
-    return peekPredefinedString(PredefinedName.MODULE)
-        && !peekImplicitSemiColon(1)
-        && peekId(1)
-        && peekPredefinedString(2, PredefinedName.FROM)
-        && peek(3, TokenType.STRING);
-  }
-
-  private ParseTree parseModuleDefinition() {
-    SourcePosition start = getTreeStartLocation();
-    eatPredefinedString(PredefinedName.MODULE);
-    IdentifierToken name = eatId();
-    eatPredefinedString(PredefinedName.FROM);
-    LiteralToken moduleSpecifier = eat(TokenType.STRING).asLiteral();
-    eatPossibleImplicitSemiColon();
-    return new ModuleImportTree(getTreeLocation(start), name, moduleSpecifier);
   }
 
   // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-imports
@@ -217,31 +196,47 @@ public class Parser {
       eatPossibleImplicitSemiColon();
 
       return new ImportDeclarationTree(
-          getTreeLocation(start), null, null, moduleSpecifier);
+          getTreeLocation(start), null, null, null, moduleSpecifier);
     }
 
-    // import DefaultBinding , ImportSpecifierSet from ModuleSpecifier ;
-    // import DefaultBinding from ModuleSpecifier ;
-    // import ImportSpecifierSet from ModuleSpecifier ;
+    // import ImportedDefaultBinding from ModuleSpecifier
+    // import NameSpaceImport from ModuleSpecifier
+    // import NamedImports from ModuleSpecifier ;
+    // import ImportedDefaultBinding , NameSpaceImport from ModuleSpecifier ;
+    // import ImportedDefaultBinding , NamedImports from ModuleSpecifier ;
     IdentifierToken defaultBindingIdentifier = null;
+    IdentifierToken nameSpaceImportIdentifier = null;
     ImmutableList<ParseTree> identifierSet = null;
+
+    boolean parseExplicitNames = true;
     if (peekId()) {
       defaultBindingIdentifier = eatId();
       if (peek(TokenType.COMMA)) {
         eat(TokenType.COMMA);
+      } else {
+        parseExplicitNames = false;
+      }
+    }
+
+    if (parseExplicitNames) {
+      if (peek(TokenType.STAR)) {
+        eat(TokenType.STAR);
+        eatPredefinedString(PredefinedName.AS);
+        nameSpaceImportIdentifier = eatId();
+      } else {
         identifierSet = parseImportSpecifierSet();
       }
-    } else if (peek(TokenType.OPEN_CURLY)) {
-      identifierSet = parseImportSpecifierSet();
     }
 
     eatPredefinedString(PredefinedName.FROM);
-    LiteralToken moduleSpecifier = eat(TokenType.STRING).asLiteral();
+    Token moduleStr = eat(TokenType.STRING);
+    LiteralToken moduleSpecifier = (moduleStr == null)
+        ? null : moduleStr.asLiteral();
     eatPossibleImplicitSemiColon();
 
     return new ImportDeclarationTree(
         getTreeLocation(start),
-        defaultBindingIdentifier, identifierSet, moduleSpecifier);
+        defaultBindingIdentifier, identifierSet, nameSpaceImportIdentifier, moduleSpecifier);
   }
 
   //  ImportSpecifierSet ::= '{' (ImportSpecifier (',' ImportSpecifier)* (,)? )?  '}'
@@ -380,15 +375,6 @@ public class Parser {
     }
     return new ExportSpecifierTree(
         getTreeLocation(start), importedName, destinationName);
-  }
-
-  // ModuleDefinition
-  private boolean peekModuleDeclaration() {
-    return peekModuleDefinition();
-  }
-
-  private ParseTree parseModuleDeclaration() {
-    return parseModuleDefinition();
   }
 
   private boolean peekClassDeclaration() {
@@ -575,8 +561,12 @@ public class Parser {
       // TODO(johnlenz): determine if we can parse this without the
       // overhead of forking the parser.
       Parser p = createLookaheadParser();
-      p.parseFormalParameterList();
-      return !p.errorReporter.hadError() && p.peek(TokenType.ARROW);
+      try {
+        p.parseFormalParameterList();
+        return p.peek(TokenType.ARROW);
+      } catch (ParseException e) {
+        return false;
+      }
     }
     return false;
   }
@@ -863,15 +853,12 @@ public class Parser {
         getTreeLocation(start), token, declarations.build());
   }
 
-  private static final EnumSet<TokenType> declarationDestructuringFollow =
-      EnumSet.of(TokenType.EQUAL);
-
   private VariableDeclarationTree parseVariableDeclaration(
       final TokenType binding, Expression expressionIn) {
 
     SourcePosition start = getTreeStartLocation();
     ParseTree lvalue;
-    if (peekPattern(PatternKind.INITIALIZER, declarationDestructuringFollow)) {
+    if (peekPattern(PatternKind.INITIALIZER)) {
       lvalue = parsePattern(PatternKind.INITIALIZER);
     } else {
       lvalue = parseIdentifierExpression();
@@ -970,12 +957,16 @@ public class Parser {
         if (variables.declarations.size() > 1) {
           reportError("for-in statement may not have more than one variable declaration");
         }
-        // for-in: if let/const binding used, initializer is illegal
-        if ((variables.declarationType == TokenType.LET ||
-             variables.declarationType == TokenType.CONST)) {
-          VariableDeclarationTree declaration = variables.declarations.get(0);
-          if (declaration.initializer != null) {
-            reportError("let/const in for-in statement may not have initializer");
+        VariableDeclarationTree declaration = variables.declarations.get(0);
+        if (declaration.initializer != null) {
+          // An initializer is allowed here in ES5 and below, but not in ES6.
+          // Warn about it, to encourage people to eliminate it from their code.
+          // http://esdiscuss.org/topic/initializer-expression-on-for-in-syntax-subject
+          if (config.atLeast6) {
+            reportError("for-in statement may not have initializer");
+          } else {
+            errorReporter.reportWarning(declaration.location.start,
+                "for-in statement should not have initializer");
           }
         }
 
@@ -1003,11 +994,25 @@ public class Parser {
       return parseForStatement(start, null);
     }
 
-    ParseTree initializer = parseExpressionNoIn();
-    if (peek(TokenType.IN)) {
-      return parseForInStatement(start, initializer);
-    } else if (peekPredefinedString(PredefinedName.OF)) {
-      return parseForOfStatement(start, initializer);
+    Predicate<Token> followPred = new Predicate<Token>() {
+      public boolean apply(Token t) {
+        return EnumSet.of(TokenType.IN, TokenType.EQUAL).contains(t.type)
+            || (t.type == TokenType.IDENTIFIER
+                && t.asIdentifier().value.equals(PredefinedName.OF));
+      }
+    };
+    ParseTree initializer = peekPattern(PatternKind.ANY, followPred)
+        ? parsePattern(PatternKind.ANY)
+        : parseExpressionNoIn();
+
+    if (peek(TokenType.IN) || peekPredefinedString(PredefinedName.OF)) {
+      if (initializer.type != ParseTreeType.BINARY_OPERATOR) {
+        if (peek(TokenType.IN)) {
+          return parseForInStatement(start, initializer);
+        } else {
+          return parseForOfStatement(start, initializer);
+        }
+      }
     }
 
     return parseForStatement(start, initializer);
@@ -1027,8 +1032,8 @@ public class Parser {
 
   /** Checks variable declaration in variable and for statements. */
   private void checkInitializers(VariableDeclarationListTree variables) {
-    if (variables.declarationType == TokenType.LET ||
-        variables.declarationType == TokenType.CONST) {
+    if (variables.declarationType == TokenType.LET
+        || variables.declarationType == TokenType.CONST) {
       for (VariableDeclarationTree declaration : variables.declarations) {
         if (declaration.initializer == null) {
           reportError("let/const in for statement must have an initializer");
@@ -1196,7 +1201,9 @@ public class Parser {
     SourcePosition start = getTreeStartLocation();
     eat(TokenType.THROW);
     ParseTree value = null;
-    if (!peekImplicitSemiColon()) {
+    if (peekImplicitSemiColon()) {
+      reportError("semicolon/newline not allowed after 'throw'");
+    } else {
       value = parseExpression();
     }
     eatPossibleImplicitSemiColon();
@@ -1227,10 +1234,15 @@ public class Parser {
     CatchTree catchBlock;
     eat(TokenType.CATCH);
     eat(TokenType.OPEN_PAREN);
-    IdentifierToken exceptionName = eatId();
+    ParseTree exception;
+    if (peekPattern(PatternKind.INITIALIZER)) {
+      exception = parsePattern(PatternKind.INITIALIZER);
+    } else {
+      exception = parseIdentifierExpression();
+    }
     eat(TokenType.CLOSE_PAREN);
     BlockTree catchBody = parseBlock();
-    catchBlock = new CatchTree(getTreeLocation(start), exceptionName, catchBody);
+    catchBlock = new CatchTree(getTreeLocation(start), exception, catchBody);
     return catchBlock;
   }
 
@@ -1669,6 +1681,13 @@ public class Parser {
     SourcePosition start = getTreeStartLocation();
     Token name = eatObjectLiteralPropertyName();
     Token colon = eatOpt(TokenType.COLON);
+    if (colon == null) {
+      if (name.type != TokenType.IDENTIFIER) {
+        reportExpectedError(peekToken(), TokenType.COLON);
+      } else if (Keywords.isKeyword(name.asIdentifier().value)) {
+        reportError(name, "Cannot use keyword in short object literal");
+      }
+    }
     ParseTree value = colon == null ? null : parseAssignmentExpression();
     return new PropertyNameAssignmentTree(getTreeLocation(start), name, value);
   }
@@ -1785,9 +1804,8 @@ public class Parser {
         : parseConditional(expressionIn);
 
     if (peekAssignmentOperator()) {
-      if (!left.isLeftHandSideExpression() && !left.isPattern()) {
-        reportError("Left hand side of assignment must be new, call, member, " +
-            "function, primary expressions or destructuring pattern");
+      if (!left.isValidAssignmentTarget()) {
+        reportError("invalid assignment target");
       }
       Token operator = nextToken();
       ParseTree right = parseAssignment(expressionIn);
@@ -2205,6 +2223,9 @@ public class Parser {
 
       if (!peek(TokenType.CLOSE_PAREN)) {
         eat(TokenType.COMMA);
+        if (peek(TokenType.CLOSE_PAREN)) {
+          reportError("Invalid trailing comma in arguments list");
+        }
       }
     }
     eat(TokenType.CLOSE_PAREN);
@@ -2228,25 +2249,8 @@ public class Parser {
     return parseAssignmentExpression();
   }
 
-  // Destructuring; see
+  // Destructuring (aka pattern matching); see
   // http://wiki.ecmascript.org/doku.php?id=harmony:destructuring
-  //
-  // SpiderMonkey is much more liberal in where it allows
-  // parenthesized patterns, for example, it allows [x, ([y, z])] but
-  // those inner parentheses aren't allowed in the grammar on the ES
-  // wiki. This implementation conservatively only allows parentheses
-  // at the top-level of assignment statements.
-  //
-  // Rhino has some destructuring support, but it lags SpiderMonkey;
-  // for example, Rhino crashes parsing ({x: f().foo}) = {x: 123}.
-
-  // TODO: implement numbers and strings as labels in object destructuring
-  // TODO: implement destructuring bind in formal parameter lists
-  // TODO: implement destructuring bind in catch headers
-  // TODO: implement destructuring bind in for-in when iterators are
-  // supported
-  // TODO: implement destructuring bind in let bindings when let
-  // bindings are supported
 
   // Kinds of destructuring patterns
   private enum PatternKind {
@@ -2258,12 +2262,7 @@ public class Parser {
   }
 
   private boolean peekParenPatternAssignment() {
-    if (!peekParenPatternStart()) {
-      return false;
-    }
-    Parser p = createLookaheadParser();
-    p.parseParenPattern();
-    return !p.errorReporter.hadError() && p.peek(TokenType.EQUAL);
+    return peekParenPattern(PatternKind.ANY, EnumSet.of(TokenType.EQUAL));
   }
 
   private boolean peekParenPatternStart() {
@@ -2298,13 +2297,21 @@ public class Parser {
     }
   }
 
-  private boolean peekPattern(PatternKind kind, EnumSet<TokenType> follow) {
+  private boolean peekPattern(PatternKind kind) {
+    return peekPattern(kind, Predicates.<Token>alwaysTrue());
+  }
+
+  private boolean peekPattern(PatternKind kind, Predicate<Token> follow) {
     if (!peekPatternStart()) {
       return false;
     }
     Parser p = createLookaheadParser();
-    p.parsePattern(kind);
-    return !p.errorReporter.hadError() && follow.contains(p.peekType());
+    try {
+      p.parsePattern(kind);
+      return follow.apply(p.peekToken());
+    } catch (ParseException e) {
+      return false;
+    }
   }
 
   private boolean peekParenPattern(PatternKind kind, EnumSet<TokenType> follow) {
@@ -2312,8 +2319,12 @@ public class Parser {
       return false;
     }
     Parser p = createLookaheadParser();
-    p.parsePattern(kind);
-    return !p.errorReporter.hadError() && follow.contains(p.peekType());
+    try {
+      p.parseParenPattern(kind);
+      return follow.contains(p.peekType());
+    } catch (ParseException e) {
+      return false;
+    }
   }
 
   private ParseTree parsePattern(PatternKind kind) {
@@ -2330,28 +2341,31 @@ public class Parser {
     return peekExpression() || peek(TokenType.SPREAD);
   }
 
+  private static final EnumSet<TokenType> arraySubPatternFollowSet =
+      EnumSet.of(TokenType.COMMA, TokenType.CLOSE_SQUARE, TokenType.EQUAL);
+
   // Element ::= Pattern | LValue | ... LValue
-  private ParseTree parsePatternElement(PatternKind kind,
-                                        EnumSet<TokenType> follow) {
-    // [ or { are preferably the start of a sub-pattern
-    if (peekParenPattern(kind, follow)) {
-      return parseParenPattern(kind);
-    }
-
-    // An element that's not a sub-pattern
-
-    boolean rest = false;
+  private ParseTree parseArrayPatternElement(PatternKind kind) {
     SourcePosition start = getTreeStartLocation();
-    if (peek(TokenType.SPREAD)) {
-      eat(TokenType.SPREAD);
-      rest = true;
+    ParseTree lvalue;
+    boolean rest = false;
+
+    // [ or { are preferably the start of a sub-pattern
+    if (peekParenPattern(kind, arraySubPatternFollowSet)) {
+      lvalue = parseParenPattern(kind);
+    } else {
+      // An element that's not a sub-pattern
+
+      if (peek(TokenType.SPREAD)) {
+        eat(TokenType.SPREAD);
+        rest = true;
+      }
+
+      lvalue = parseLeftHandSideExpression();
     }
 
-    ParseTree lvalue = parseLeftHandSideExpression();
-
-    if ((rest || kind == PatternKind.INITIALIZER)
-        && lvalue.type != ParseTreeType.IDENTIFIER_EXPRESSION) {
-      reportError("lvalues in initializer patterns must be identifiers");
+    if (rest && lvalue.type != ParseTreeType.IDENTIFIER_EXPRESSION) {
+      reportError("lvalues in rest elements must be identifiers");
       return lvalue;
     }
 
@@ -2370,9 +2384,6 @@ public class Parser {
     return lvalue;
   }
 
-  private static final EnumSet<TokenType> arraySubPatternFollowSet =
-      EnumSet.of(TokenType.COMMA, TokenType.CLOSE_SQUARE);
-
   // Pattern ::= ... | "[" Element? ("," Element?)* "]"
   private ParseTree parseArrayPattern(PatternKind kind) {
     SourcePosition start = getTreeStartLocation();
@@ -2383,7 +2394,7 @@ public class Parser {
         eat(TokenType.COMMA);
         elements.add(new NullTree(getTreeLocation(getTreeStartLocation())));
       } else {
-        ParseTree element = parsePatternElement(kind, arraySubPatternFollowSet);
+        ParseTree element = parseArrayPatternElement(kind);
         elements.add(element);
 
         if (element.isAssignmentRestElement()) {
@@ -2406,9 +2417,6 @@ public class Parser {
     return new ArrayPatternTree(getTreeLocation(start), elements.build());
   }
 
-  private static final EnumSet<TokenType> objectSubPatternFollowSet =
-      EnumSet.of(TokenType.COMMA, TokenType.CLOSE_CURLY);
-
   // Pattern ::= "{" (Field ("," Field)* ","?)? "}" | ...
   private ParseTree parseObjectPattern(PatternKind kind) {
     SourcePosition start = getTreeStartLocation();
@@ -2416,7 +2424,6 @@ public class Parser {
     eat(TokenType.OPEN_CURLY);
     while (peekObjectPatternField()) {
       fields.add(parseObjectPatternField(kind));
-
       if (peek(TokenType.COMMA)) {
         // Consume the comma separator
         eat(TokenType.COMMA);
@@ -2430,23 +2437,66 @@ public class Parser {
   }
 
   private boolean peekObjectPatternField() {
-    return peekId();
+    return peekPropertyNameOrComputedProp(0);
   }
 
   private ParseTree parseObjectPatternField(PatternKind kind) {
     SourcePosition start = getTreeStartLocation();
-    IdentifierToken identifier = eatIdOrKeywordAsId();
-    ParseTree element = null;
-    if (peek(TokenType.COLON)) {
+    if (peekType() == TokenType.OPEN_SQUARE) {
+      ParseTree key = parseComputedPropertyName();
       eat(TokenType.COLON);
-      element = parsePatternElement(kind, objectSubPatternFollowSet);
+      ParseTree value = parseObjectPatternFieldTail(kind);
+      return new ComputedPropertyDefinitionTree(getTreeLocation(start), key, value);
+    }
 
-      if (element.isAssignmentRestElement()) {
-        reportError("Rest can not be used in object patterns");
+    Token name;
+    if (peekId() || Keywords.isKeyword(peekType())) {
+      name = eatIdOrKeywordAsId();
+      if (!peek(TokenType.COLON)) {
+        IdentifierToken idToken = (IdentifierToken) name;
+        if (Keywords.isKeyword(idToken.value)) {
+          reportError("cannot use keyword '" + name + "' here.");
+        }
+        if (peek(TokenType.EQUAL)) {
+          IdentifierExpressionTree idTree = new IdentifierExpressionTree(
+              getTreeLocation(start), idToken);
+          eat(TokenType.EQUAL);
+          ParseTree defaultValue = parseAssignmentExpression();
+          return new DefaultParameterTree(getTreeLocation(start), idTree, defaultValue);
+        }
+        return new PropertyNameAssignmentTree(getTreeLocation(start), name, null);
+      }
+    } else {
+      name = parseLiteralExpression().literalToken;
+    }
+
+    eat(TokenType.COLON);
+    ParseTree value = parseObjectPatternFieldTail(kind);
+    return new PropertyNameAssignmentTree(getTreeLocation(start), name, value);
+  }
+
+  /**
+   * Parses the "tail" of an object pattern field, i.e. the part after the ':'
+   */
+  private ParseTree parseObjectPatternFieldTail(PatternKind kind) {
+    SourcePosition start = getTreeStartLocation();
+    ParseTree value;
+    if (peekPattern(kind)) {
+      value = parsePattern(kind);
+    } else {
+      value = (kind == PatternKind.ANY)
+          ? parseLeftHandSideExpression()
+          : parseIdentifierExpression();
+      if (!value.isValidAssignmentTarget()) {
+        reportError("invalid assignment target");
       }
     }
-    return new ObjectPatternFieldTree(getTreeLocation(start),
-                                      identifier, element);
+    if (peek(TokenType.EQUAL)) {
+      eat(TokenType.EQUAL);
+      ParseTree defaultValue = parseAssignmentExpression();
+      return new DefaultParameterTree(getTreeLocation(start), value, defaultValue);
+    }
+    return value;
   }
 
   /**
@@ -2472,19 +2522,6 @@ public class Parser {
         || peek(TokenType.SEMI_COLON)
         || peek(TokenType.CLOSE_CURLY)
         || peek(TokenType.END_OF_FILE);
-  }
-
-  /**
-   * Returns true if an implicit or explicit semi colon is at the current location.
-   */
-  private boolean peekImplicitSemiColon(int lookahead) {
-    int last = (lookahead == 0) ? getLastLine() :
-      peekToken(lookahead - 1).location.end.line;
-    int next = peekToken(lookahead).location.start.line;
-    return next > last
-        || peek(lookahead, TokenType.SEMI_COLON)
-        || peek(lookahead, TokenType.CLOSE_CURLY)
-        || peek(lookahead, TokenType.END_OF_FILE);
   }
 
   /**
@@ -2702,21 +2739,11 @@ public class Parser {
 
   /**
    * Forks the parser at the current point and returns a new
-   * parser. The new parser observes but does not report errors. This
-   * can be used for speculative parsing:
-   *
-   * <pre>
-   * Parser p = createLookaheadParser();
-   * if (p.parseX() != null &amp;&amp; !p.errorReporter.hadError()) {
-   *   return parseX();  // speculation succeeded, so roll forward
-   * } else {
-   *   return parseY();  // try something else
-   * }
-   * </pre>
+   * parser for speculative parsing.
    */
   private Parser createLookaheadParser() {
     return new Parser(config,
-        new MutedErrorReporter(),
+        new LookaheadErrorReporter(),
         this.scanner.getFile(),
         this.scanner.getOffset(),
         inGeneratorContext());

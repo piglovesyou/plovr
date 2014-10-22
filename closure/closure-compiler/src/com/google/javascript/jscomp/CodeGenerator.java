@@ -51,7 +51,7 @@ class CodeGenerator {
   private final CharsetEncoder outputCharsetEncoder;
 
   private final boolean preferSingleQuotes;
-  private final boolean preserveJsDoc;
+  private final boolean preserveTypeAnnotations;
   private final boolean trustedStrings;
   private final LanguageMode languageMode;
 
@@ -61,7 +61,7 @@ class CodeGenerator {
     preferSingleQuotes = false;
     trustedStrings = true;
     languageMode = LanguageMode.ECMASCRIPT5;
-    preserveJsDoc = false;
+    preserveTypeAnnotations = false;
   }
 
   static CodeGenerator forCostEstimation(CodeConsumer consumer) {
@@ -86,7 +86,7 @@ class CodeGenerator {
     this.preferSingleQuotes = options.preferSingleQuotes;
     this.trustedStrings = options.trustedStrings;
     this.languageMode = options.getLanguageOut();
-    this.preserveJsDoc = options.preserveJsDoc;
+    this.preserveTypeAnnotations = options.preserveTypeAnnotations;
   }
 
   /**
@@ -113,12 +113,9 @@ class CodeGenerator {
       return;
     }
 
-    if (preserveJsDoc) {
+    if (preserveTypeAnnotations) {
       if (n.getJSDocInfo() != null) {
-        String jsDocString = n.getJSDocInfo().getOriginalCommentString();
-        if (jsDocString != null) {
-          add(jsDocString);
-        }
+        add(JSDocInfoPrinter.print(n.getJSDocInfo()));
       }
     }
 
@@ -410,17 +407,20 @@ class CodeGenerator {
 
       case Token.IMPORT:
         add("import");
-        Node specList = first.getNext();
+
+        Node second = first.getNext();
         if (!first.isEmpty()) {
           add(first);
-          if (specList.hasChildren()) {
+          if (!second.isEmpty()) {
             cc.listSeparator();
           }
         }
-        if (specList.hasChildren()) {
-          add(specList);
+        if (!second.isEmpty()) {
+          add(second);
         }
-        add("from");
+        if (!first.isEmpty() || !second.isEmpty()) {
+          add("from");
+        }
         add(last);
         cc.endStatement();
         break;
@@ -444,6 +444,12 @@ class CodeGenerator {
           add("as");
           add(last);
         }
+        break;
+
+      case Token.IMPORT_STAR:
+        add("*");
+        add("as");
+        add(n.getString());
         break;
 
       // CLASS -> NAME,EXPR|EMPTY,BLOCK

@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,6 +32,8 @@ import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
 import com.google.javascript.jscomp.CoverageInstrumentationPass.CoverageReach;
 import com.google.javascript.jscomp.ExtractPrototypeMemberDeclarations.Pattern;
 import com.google.javascript.jscomp.NodeTraversal.Callback;
+import com.google.javascript.jscomp.lint.CheckEnums;
+import com.google.javascript.jscomp.lint.CheckInterfaces;
 import com.google.javascript.jscomp.lint.CheckNullableReturn;
 import com.google.javascript.jscomp.parsing.ParserRunner;
 import com.google.javascript.rhino.IR;
@@ -208,23 +211,29 @@ public class DefaultPassConfig extends PassConfig {
 
     checks.add(createEmptyPass("beforeStandardChecks"));
 
+    if (options.closurePass) {
+      checks.add(closureRewriteModule);
+    }
+
     if (options.needsConversion() || options.aggressiveVarCheck.isOn()) {
       checks.add(checkVariableReferences);
     }
 
     if (options.needsConversion()) {
-      checks.add(es6HandleDefaultParams);
+      checks.add(es6RenameVariablesInParamLists);
       checks.add(es6SplitVariableDeclarations);
       checks.add(convertEs6ToEs3);
       checks.add(rewriteLetConst);
       checks.add(rewriteGenerators);
       checks.add(markTranspilationDone);
+    }
 
-      if (options.transpileOnly) {
-        return checks;
-      } else {
-        checks.add(es6RuntimeLibrary);
-      }
+    if (options.transpileOnly) {
+      return checks;
+    }
+
+    if (options.needsConversion()) {
+      checks.add(es6RuntimeLibrary);
     }
 
     checks.add(convertStaticInheritance);
@@ -234,7 +243,6 @@ public class DefaultPassConfig extends PassConfig {
     }
 
     if (options.closurePass) {
-      checks.add(closureRewriteModule);
       checks.add(closureGoogScopeAliases);
       checks.add(closureRewriteClass);
     }
@@ -404,6 +412,10 @@ public class DefaultPassConfig extends PassConfig {
       checks.add(printNameReferenceReport);
     }
 
+    if (!options.getConformanceConfigs().isEmpty()) {
+      checks.add(checkConformance);
+    }
+
     checks.add(createEmptyPass("afterStandardChecks"));
 
     assertAllOneTimePasses(checks);
@@ -414,7 +426,7 @@ public class DefaultPassConfig extends PassConfig {
   protected List<PassFactory> getOptimizations() {
     List<PassFactory> passes = Lists.newArrayList();
 
-    if (options.needsConversion() && options.transpileOnly) {
+    if (options.transpileOnly) {
       return passes;
     }
 
@@ -1109,11 +1121,11 @@ public class DefaultPassConfig extends PassConfig {
     }
   };
 
-  final HotSwapPassFactory es6HandleDefaultParams =
-      new HotSwapPassFactory("Es6HandleDefaultParams", true) {
+  final HotSwapPassFactory es6RenameVariablesInParamLists =
+      new HotSwapPassFactory("Es6RenameVariablesInParamLists", true) {
     @Override
     protected HotSwapCompilerPass create(final AbstractCompiler compiler) {
-      return new Es6HandleDefaultParameters(compiler);
+      return new Es6RenameVariablesInParamLists(compiler);
     }
   };
 
@@ -1493,11 +1505,14 @@ public class DefaultPassConfig extends PassConfig {
     }
   };
 
-  final PassFactory lintChecks =
-      new PassFactory("lintChecks", true) {
+  final HotSwapPassFactory lintChecks =
+      new HotSwapPassFactory("lintChecks", true) {
     @Override
-    protected CompilerPass create(AbstractCompiler compiler) {
-      return new CheckNullableReturn(compiler);
+    protected HotSwapCompilerPass create(AbstractCompiler compiler) {
+      return combineChecks(compiler, ImmutableList.<Callback>of(
+          new CheckEnums(compiler),
+          new CheckInterfaces(compiler),
+          new CheckNullableReturn(compiler)));
     }
   };
 
@@ -1941,7 +1956,8 @@ public class DefaultPassConfig extends PassConfig {
       new PassFactory("removeUnusedClassProperties", false) {
     @Override
     protected CompilerPass create(AbstractCompiler compiler) {
-      return new RemoveUnusedClassProperties(compiler);
+      return new RemoveUnusedClassProperties(
+          compiler, options.removeUnusedConstructorProperties);
     }
   };
 
@@ -2655,4 +2671,12 @@ public class DefaultPassConfig extends PassConfig {
     }
   }
 
+  private final PassFactory checkConformance =
+      new PassFactory("checkConformance", true) {
+    @Override
+    protected CompilerPass create(final AbstractCompiler compiler) {
+      return new CheckConformance(
+          compiler, ImmutableList.copyOf(options.getConformanceConfigs()));
+    }
+  };
 }

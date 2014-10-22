@@ -16,13 +16,10 @@
 
 package com.google.javascript.jscomp.newtypes;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,12 +47,17 @@ public class ObjectType implements TypeWithProperties {
       null, null, null, false, ObjectKind.STRUCT);
   static final ObjectType TOP_DICT = ObjectType.makeObjectType(
       null, null, null, false, ObjectKind.DICT);
+  private static final PersistentMap<String, Property> BOTTOM_MAP =
+      PersistentMap.of("_", Property.make(JSType.BOTTOM, JSType.BOTTOM));
+  private static final ObjectType BOTTOM_OBJECT = new ObjectType(
+      null, BOTTOM_MAP, null, false, ObjectKind.UNRESTRICTED);
 
   private ObjectType(NominalType nominalType,
       PersistentMap<String, Property> props, FunctionType fn, boolean isLoose,
       ObjectKind objectKind) {
     Preconditions.checkArgument(fn == null || fn.isLoose() == isLoose,
         "isLoose: %s, fn: %s", isLoose, fn);
+    Preconditions.checkArgument(FunctionType.isInhabitable(fn));
     Preconditions.checkArgument(nominalType == null || !isLoose);
     Preconditions.checkArgument(nominalType == null || fn == null,
         "Cannot create object of %s that is callable", nominalType);
@@ -71,6 +73,8 @@ public class ObjectType implements TypeWithProperties {
       boolean isLoose, ObjectKind ok) {
     if (props == null) {
       props = PersistentMap.create();
+    } else if (containsBottomProp(props) || !FunctionType.isInhabitable(fn)) {
+      return BOTTOM_OBJECT;
     }
     return new ObjectType(nominalType, props, fn, isLoose, ok);
   }
@@ -90,24 +94,26 @@ public class ObjectType implements TypeWithProperties {
     for (Map.Entry<String, JSType> propTypeEntry : propTypes.entrySet()) {
       String propName = propTypeEntry.getKey();
       JSType propType = propTypeEntry.getValue();
+      if (propType.isBottom()) {
+        return BOTTOM_OBJECT;
+      }
       props = props.with(propName, Property.make(propType, propType));
     }
-    return ObjectType.makeObjectType(
+    return new ObjectType(
         null, props, null, false, ObjectKind.UNRESTRICTED);
   }
 
   boolean isInhabitable() {
-    for (Property p : props.values()) {
-      if (p.getType().isBottom()) {
-        return false;
-      }
-    }
-    // TODO(dimvar): do we need a stricter check for functions?
-    return true;
+    return this != BOTTOM_OBJECT;
   }
 
-  boolean isRecordType() {
-    return nominalType == null && fn == null && !isLoose;
+  static boolean containsBottomProp(PersistentMap<String, Property> props) {
+    for (Property p : props.values()) {
+      if (p.getType().isBottom()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   boolean isStruct() {
@@ -141,11 +147,14 @@ public class ObjectType implements TypeWithProperties {
     }
     FunctionType fn = this.fn == null ? null : this.fn.withLoose();
     PersistentMap<String, Property> newProps = PersistentMap.create();
-    for (String pname : this.props.keySet()) {
+    for (Map.Entry<String, Property> propsEntry : this.props.entrySet()) {
+      String pname = propsEntry.getKey();
+      Property prop = propsEntry.getValue();
       // It's wrong to warn about a possibly absent property on loose objects.
-      newProps = newProps.with(pname, this.props.get(pname).withRequired());
+      newProps = newProps.with(pname, prop.withRequired());
     }
-    return ObjectType.makeObjectType(
+    // No need to call makeObjectType because we know new object is inhabitable
+    return new ObjectType(
         nominalType, newProps, fn, true, this.objectKind);
   }
 
@@ -271,6 +280,9 @@ public class ObjectType implements TypeWithProperties {
         if (nomProp != null) {
           newProps =
               addOrRemoveProp(newProps, pname, nomProp, propsEntry.getValue());
+          if (newProps == BOTTOM_MAP) {
+            return BOTTOM_MAP;
+          }
         }
       }
     }
@@ -293,7 +305,13 @@ public class ObjectType implements TypeWithProperties {
           resultNominalType.getProp(pname) != null) {
         Property nomProp = resultNominalType.getProp(pname);
         newProps = addOrRemoveProp(newProps, pname, nomProp, newProp);
+        if (newProps == BOTTOM_MAP) {
+          return BOTTOM_MAP;
+        }
       } else {
+        if (newProp.getType().isBottom()) {
+          return BOTTOM_MAP;
+        }
         newProps = newProps.with(pname, newProp);
       }
     }
@@ -308,7 +326,11 @@ public class ObjectType implements TypeWithProperties {
     if (!propType.isUnknown() &&
         propType.isSubtypeOf(nomPropType) && !propType.equals(nomPropType)) {
       // We use specialize so that if nomProp is @const, we don't forget it.
-      return props.with(pname, nomProp.specialize(objProp));
+      Property newProp = nomProp.specialize(objProp);
+      if (newProp.getType().isBottom()) {
+        return BOTTOM_MAP;
+      }
+      return props.with(pname, newProp);
     }
     return props.without(pname);
   }
@@ -343,6 +365,9 @@ public class ObjectType implements TypeWithProperties {
       if (!props2.containsKey(pname)) {
         newProps = newProps.with(pname, propsEntry.getValue().withRequired());
       }
+      if (newProps == BOTTOM_MAP) {
+        return BOTTOM_MAP;
+      }
     }
     for (Map.Entry<String, Property> propsEntry : props2.entrySet()) {
       String pname = propsEntry.getKey();
@@ -352,6 +377,9 @@ public class ObjectType implements TypeWithProperties {
             Property.join(props1.get(pname), prop2).withRequired());
       } else {
         newProps = newProps.with(pname, prop2.withRequired());
+      }
+      if (newProps == BOTTOM_MAP) {
+        return BOTTOM_MAP;
       }
     }
     return newProps;
@@ -478,16 +506,26 @@ public class ObjectType implements TypeWithProperties {
       if (fn != null || other.fn != null) {
         return null;
       }
-      return ObjectType.makeObjectType(
+      PersistentMap<String, Property> newProps =
+          meetPropsHelper(true, resultNominalType, this.props, other.props);
+      if (newProps == BOTTOM_MAP) {
+        return BOTTOM_OBJECT;
+      }
+      return new ObjectType(
           resultNominalType,
-          meetPropsHelper(true, resultNominalType, this.props, other.props),
+          newProps,
           null,
           false,
           ObjectKind.meet(this.objectKind, other.objectKind));
     }
-    return ObjectType.makeObjectType(
+    PersistentMap<String, Property> newProps =
+        meetPropsHelper(true, null, this.props, other.props);
+    if (newProps == BOTTOM_MAP) {
+      return BOTTOM_OBJECT;
+    }
+    return new ObjectType(
         null,
-        meetPropsHelper(true, null, this.props, other.props),
+        newProps,
         this.fn == null ? null : this.fn.specialize(other.fn),
         this.isLoose,
         ObjectKind.meet(this.objectKind, other.objectKind));
@@ -499,6 +537,9 @@ public class ObjectType implements TypeWithProperties {
     NominalType resultNominalType =
         NominalType.pickSubclass(obj1.nominalType, obj2.nominalType);
     FunctionType fn = FunctionType.meet(obj1.fn, obj2.fn);
+    if (!FunctionType.isInhabitable(fn)) {
+      return BOTTOM_OBJECT;
+    }
     boolean isLoose = obj1.isLoose && obj2.isLoose ||
         fn != null && fn.isLoose();
     PersistentMap<String, Property> props;
@@ -507,7 +548,10 @@ public class ObjectType implements TypeWithProperties {
     } else {
       props = meetPropsHelper(false, resultNominalType, obj1.props, obj2.props);
     }
-    return ObjectType.makeObjectType(
+    if (props == BOTTOM_MAP) {
+      return BOTTOM_OBJECT;
+    }
+    return new ObjectType(
         resultNominalType,
         props,
         fn,
@@ -546,7 +590,7 @@ public class ObjectType implements TypeWithProperties {
       return objs1;
     }
     ObjectType[] objs1Arr = objs1.toArray(new ObjectType[0]);
-    ObjectType[] keptFrom1 = Arrays.copyOf(objs1Arr, objs1Arr.length);
+    ObjectType[] keptFrom1 = objs1Arr.clone();
     ImmutableSet.Builder<ObjectType> newObjs = ImmutableSet.builder();
     for (ObjectType obj2 : objs2) {
       boolean addedObj2 = false;
@@ -587,18 +631,17 @@ public class ObjectType implements TypeWithProperties {
     return c1.isSubclassOf(c2) || c2.isSubclassOf(c1);
   }
 
+  // TODO(dimvar): handle greatest lower bound of interface types.
+  // If we do that, we need to normalize the output, otherwise it could contain
+  // two object types that are in a subtype relation, eg, see
+  // NewTypeInferenceTest#testDifficultObjectSpecialization.
   static ImmutableSet<ObjectType> meetSetsHelper(
       boolean specializeObjs1,
       Set<ObjectType> objs1, Set<ObjectType> objs2) {
-    // TODO(dimvar): handle greatest lower bound of interface types
     if (objs1 == null || objs2 == null) {
       return null;
     }
     ImmutableSet.Builder<ObjectType> newObjs = ImmutableSet.builder();
-    // This algorithm is a bit suspect since the behavior is not deterministic.
-    // e.g. The results for both of the following depend on iteration order:
-    // MEET[ {noNom1, Foo} ,  {noNom2, Bar} ]
-    // MEET[ {Super} ,  {Sub1, Sub2} ]
     for (ObjectType obj2 : objs2) {
       for (ObjectType obj1 : objs1) {
         // TODO(blickly): Add nominal type for functions (Function) and rethink
@@ -614,15 +657,12 @@ public class ObjectType implements TypeWithProperties {
             newObj = meet(obj1, obj2);
           }
           newObjs.add(newObj);
-          break;
         }
       }
     }
     return newObjs.build();
   }
 
-  // This is never called from NewTypeInferenceTest
-  @VisibleForTesting
   static ImmutableSet<ObjectType> meetSets(
       Set<ObjectType> objs1, Set<ObjectType> objs2) {
     return meetSetsHelper(false, objs1, objs2);
@@ -701,12 +741,15 @@ public class ObjectType implements TypeWithProperties {
    * @return The unified type, or null if unification fails
    */
   static ObjectType unifyUnknowns(ObjectType t1, ObjectType t2) {
-    if (t1.nominalType != t2.nominalType) {
+    if (!Objects.equals(t1.nominalType, t2.nominalType)) {
       return null;
     }
-    // TODO(blickly): Use functionType.unifyWith
-    if (t1.fn != t2.fn) {
-      throw new RuntimeException("Unification of functions not yet supported");
+    FunctionType newFn = null;
+    if (t1.fn != null || t2.fn != null) {
+      newFn = FunctionType.unifyUnknowns(t1.fn, t2.fn);
+      if (newFn == null) {
+        return null;
+      }
     }
     PersistentMap<String, Property> newProps = PersistentMap.create();
     for (String propName : t1.props.keySet()) {
@@ -721,7 +764,7 @@ public class ObjectType implements TypeWithProperties {
       }
       newProps = newProps.with(propName, p);
     }
-    return makeObjectType(t1.nominalType, newProps, t1.fn,
+    return makeObjectType(t1.nominalType, newProps, newFn,
         t1.isLoose || t2.isLoose,
         ObjectKind.join(t1.objectKind, t2.objectKind));
   }
@@ -759,35 +802,23 @@ public class ObjectType implements TypeWithProperties {
   }
 
   ObjectType substituteGenerics(Map<String, JSType> concreteTypes) {
-    if (concreteTypes.isEmpty()
-        || !hasFreeTypeVars(new HashSet<String>())) {
+    if (concreteTypes.isEmpty()) {
       return this;
     }
     PersistentMap<String, Property> newProps = PersistentMap.create();
-    for (String p : props.keySet()) {
-      newProps =
-          newProps.with(p, props.get(p).substituteGenerics(concreteTypes));
+    for (Map.Entry<String, Property> propsEntry : this.props.entrySet()) {
+      String pname = propsEntry.getKey();
+      Property newProp =
+          propsEntry.getValue().substituteGenerics(concreteTypes);
+      newProps = newProps.with(pname, newProp);
     }
-    return new ObjectType(
+    return makeObjectType(
         nominalType == null ? null :
         nominalType.instantiateGenerics(concreteTypes),
         newProps,
         fn == null ? null : fn.substituteGenerics(concreteTypes),
         isLoose,
         objectKind);
-  }
-
-  boolean hasFreeTypeVars(Set<String> boundTypeVars) {
-    if (nominalType != null && nominalType.hasFreeTypeVars(boundTypeVars)
-        || fn != null && fn.hasFreeTypeVars(boundTypeVars)) {
-      return true;
-    }
-    for (Property prop : props.values()) {
-      if (prop.hasFreeTypeVars(boundTypeVars)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override

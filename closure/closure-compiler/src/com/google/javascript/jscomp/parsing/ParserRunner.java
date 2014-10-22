@@ -19,11 +19,11 @@ package com.google.javascript.jscomp.parsing;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.javascript.jscomp.parsing.Config.LanguageMode;
 import com.google.javascript.jscomp.parsing.parser.Parser;
 import com.google.javascript.jscomp.parsing.parser.Parser.Config.Mode;
 import com.google.javascript.jscomp.parsing.parser.SourceFile;
+import com.google.javascript.jscomp.parsing.parser.trees.Comment;
 import com.google.javascript.jscomp.parsing.parser.trees.ProgramTree;
 import com.google.javascript.jscomp.parsing.parser.util.SourcePosition;
 import com.google.javascript.jscomp.parsing.parser.util.format.SimpleFormat;
@@ -51,7 +51,6 @@ public class ParserRunner {
   private ParserRunner() {}
 
   public static Config createConfig(boolean isIdeMode,
-                                    boolean parseJsDocDocumentation,
                                     LanguageMode languageMode,
                                     boolean acceptConstKeyword,
                                     Set<String> extraAnnotationNames) {
@@ -64,7 +63,7 @@ public class ParserRunner {
       effectiveAnnotationNames.addAll(extraAnnotationNames);
     }
     return new Config(effectiveAnnotationNames, suppressionNames,
-        isIdeMode, parseJsDocDocumentation, languageMode, acceptConstKeyword);
+        isIdeMode, languageMode, acceptConstKeyword);
   }
 
   public static Set<String> getReservedVars() {
@@ -109,12 +108,7 @@ public class ParserRunner {
       root.setIsSyntheticBlock(true);
 
       if (config.isIdeMode) {
-        List<com.google.javascript.jscomp.parsing.parser.trees.Comment> parserComments =
-            p.getComments();
-        comments = Lists.newArrayListWithCapacity(parserComments.size());
-        for (com.google.javascript.jscomp.parsing.parser.trees.Comment c : parserComments) {
-          comments.add(new CommentWrapper(c));
-        }
+        comments = p.getComments();
       }
     }
     return new ParseResult(root, comments);
@@ -179,7 +173,7 @@ public class ParserRunner {
       case ECMASCRIPT6:
         return Mode.ES6;
       case ECMASCRIPT6_STRICT:
-        return Mode.ES5_STRICT;
+        return Mode.ES6_STRICT;
       default:
         throw new IllegalStateException("unexpected");
     }

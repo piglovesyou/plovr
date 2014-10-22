@@ -34,12 +34,15 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
       // In a real compilation, the entire library will be loaded by
       // the InjectEs6RuntimeLibrary pass.
       "$jscomp.copyProperties = function(x,y) {};",
-      "$jscomp.inherits = function(x,y) {};"
+      "$jscomp.inherits = function(x,y) { x.base = function(a,b) {}; };"
   );
+
+  private LanguageMode languageOut;
 
   @Override
   public void setUp() {
     setAcceptedLanguage(LanguageMode.ECMASCRIPT6);
+    languageOut = LanguageMode.ECMASCRIPT3;
     enableAstValidation(true);
     runTypeCheckAfterProcessing = true;
     compareJsDoc = true;
@@ -48,7 +51,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
   @Override
   protected CompilerOptions getOptions() {
     CompilerOptions options = super.getOptions();
-    options.setLanguageOut(LanguageMode.ECMASCRIPT3);
+    options.setLanguageOut(languageOut);
     return options;
   }
 
@@ -56,10 +59,9 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
   public CompilerPass getProcessor(final Compiler compiler) {
     PhaseOptimizer optimizer = new PhaseOptimizer(compiler, null, null);
     DefaultPassConfig passConfig = new DefaultPassConfig(getOptions());
-    optimizer.addOneTimePass(passConfig.es6HandleDefaultParams);
+    optimizer.addOneTimePass(passConfig.es6RenameVariablesInParamLists);
     optimizer.addOneTimePass(passConfig.convertEs6ToEs3);
     optimizer.addOneTimePass(passConfig.rewriteLetConst);
-    optimizer.addOneTimePass(passConfig.rewriteGenerators);
     return optimizer;
   }
 
@@ -76,32 +78,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     test("class C { *foo() { yield 1; } }", Joiner.on('\n').join(
         "/** @constructor @struct */",
         "var C = function() {};",
-        "C.prototype.foo = /** @suppress {uselessCode} */ function() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value : 1, done : false};",
-        "      case 1:",
-        "        if(!($jscomp$generator$throw$arg!==undefined)) {",
-        "          $jscomp$generator$state=2;break",
-        "        }",
-        "        $jscomp$generator$state=-1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true};",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function(){ return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "};"
+        "C.prototype.foo = function*() { yield 1;};"
     ));
   }
 
@@ -350,11 +327,11 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
 
   public void testExtends() {
     compareJsDoc = false;
-    test("class D {} class C extends D { }", Joiner.on('\n').join(
+    test("class D {} class C extends D {}", Joiner.on('\n').join(
         "/** @constructor @struct */",
         "var D = function() {};",
         "/** @constructor @struct @extends {D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); };",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);"
     ));
@@ -382,7 +359,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
 
     test("class C extends ns.D { }", Joiner.on('\n').join(
         "/** @constructor @struct @extends {ns.D} */",
-        "var C = function() {}",
+        "var C = function() { C.base(this, 'constructor'); }",
         "$jscomp.copyProperties(C, ns.D);",
         "$jscomp.inherits(C, ns.D);"
     ));
@@ -407,7 +384,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var D = function() {};",
         "D.prototype.f = function() {};",
         "/** @interface @extends{D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); };",
         "C.prototype.g = function() {};"
     ));
   }
@@ -466,7 +443,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "/** @constructor @struct */",
         "var D = function() {}",
         "/** @constructor @struct @extends {D} */",
-        "var C = function() {}",
+        "var C = function() { C.base(this, 'constructor'); }",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.prototype.foo = function() ",
@@ -482,7 +459,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "/** @constructor @struct */",
         "var D = function() {}",
         "/** @constructor @struct @extends {D} */",
-        "var C = function() {}",
+        "var C = function() { C.base(this, 'constructor'); }",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.prototype.foo = function(bar)",
@@ -519,7 +496,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "/** @constructor @struct */",
         "var D = function() {};",
         "/** @constructor @struct @extends {D} */",
-        "var C = function() {}",
+        "var C = function() { C.base(this, 'constructor'); }",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.prototype.f = function() {C.base(this, 'f');}"
@@ -529,7 +506,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "/** @constructor @struct */",
         "var D = function(v) {};",
         "/** @constructor @struct @extends{D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); }",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);"
     ));
@@ -557,7 +534,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var C = function() {};",
         "C.prototype.f = function() {",
         "  /** @constructor @struct @extends{C} */",
-        "  var D = function() {}",
+        "  var D = function() { D.base(this, 'constructor'); }",
         "  $jscomp.copyProperties(D, C);",
         "  $jscomp.inherits(D, C);",
         "};"
@@ -608,7 +585,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
 
     test("class S extends B { static f() { super(); } }", Joiner.on('\n').join(
         "/** @constructor @struct @extends {B} */",
-        "var S = function() {};",
+        "var S = function() {S.base(this, 'constructor')};",
         "$jscomp.copyProperties(S, B);",
         "$jscomp.inherits(S, B);",
         "/** @this {?} */",
@@ -616,7 +593,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
 
     test("class S extends B { f() { super(); } }", Joiner.on('\n').join(
         "/** @constructor @struct @extends {B} */",
-        "var S = function() {};",
+        "var S = function() {S.base(this, 'constructor')};",
         "$jscomp.copyProperties(S, B);",
         "$jscomp.inherits(S, B);",
         "S.prototype.f=function() { S.base(this, \"f\") }"));
@@ -684,7 +661,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var D = function() {};",
         "D.f = function () {};",
         "/** @constructor @struct @extends{D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); };",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.f();"
@@ -701,7 +678,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var D = function() {};",
         "D.f = function() {};",
         "/** @constructor @struct @extends{D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); };",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.prototype.f = function() {};",
@@ -718,7 +695,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var D = function() {};",
         "D.f = function() {};",
         "/** @constructor @struct @extends{D} */",
-        "var C = function() {};",
+        "var C = function() { C.base(this, 'constructor'); };",
         "$jscomp.copyProperties(C, D);",
         "$jscomp.inherits(C, D);",
         "C.f = function() {};",
@@ -780,7 +757,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "function Foo() {}",
         "Foo.prototype.f = function() {};",
         "/** @constructor @struct @extends {Foo} */",
-        "var Sub = function() {};",
+        "var Sub = function() { Sub.base(this, 'constructor'); };",
         "$jscomp.copyProperties(Sub, Foo);",
         "$jscomp.inherits(Sub, Foo);",
         "(new Sub).f();"
@@ -802,12 +779,35 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     ), null, null, TypeCheck.CONFLICTING_SHAPE_TYPE);
   }
 
+  /**
+   * If languageOut is ES5, getters/setters in object literals are supported,
+   * but getters/setters in classes are not.
+   */
   public void testClassGetterSetter() {
+    languageOut = LanguageMode.ECMASCRIPT5;
+
     test("class C { get value() {} }", null, Es6ToEs3Converter.CANNOT_CONVERT);
     test("class C { set value(v) {} }", null, Es6ToEs3Converter.CANNOT_CONVERT);
 
     test("class C { get [foo]() {}}", null, Es6ToEs3Converter.CANNOT_CONVERT);
     test("class C { set [foo](val) {}}", null, Es6ToEs3Converter.CANNOT_CONVERT);
+  }
+
+  /**
+   * ES5 getters and setters should report an error if the languageOut is ES3.
+   */
+  public void testEs5GettersAndSetters_es3() {
+    test("var x = { get y() {} };", null, Es6ToEs3Converter.CANNOT_CONVERT);
+    test("var x = { set y(value) {} };", null, Es6ToEs3Converter.CANNOT_CONVERT);
+  }
+
+  /**
+   * ES5 getters and setters should be left alone if the languageOut is ES5.
+   */
+  public void testEs5GettersAndSetters_es5() {
+    languageOut = LanguageMode.ECMASCRIPT5;
+    testSame("var x = { get y() {} };");
+    testSame("var x = { set y(value) {} };");
   }
 
   public void testArrowFunction() {
@@ -981,14 +981,21 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
   public void testDefaultParameters() {
     enableTypeCheck(CheckLevel.WARNING);
 
-    test("var x = true; function f(a=x) { var x = false; return a; }",
-        "var x = true; function f(a) { a === undefined && (a = x); var x$0 = false; return a; }");
+    test(Joiner.on('\n').join(
+        "var x = true;",
+        "function f(a=x) { var x = false; return a; }"), Joiner.on('\n').join(
+        "var x = true;",
+        "function f(a) {",
+        "  a = (a === undefined) ? x : a;",
+        "  var x$0 = false;",
+        "  return a;",
+        "}"));
 
     test("function f(zero, one = 1, two = 2) {}; f(1); f(1,2,3);",
         Joiner.on('\n').join(
           "function f(zero, one, two) {",
-          "  one === undefined && (one = 1);",
-          "  two === undefined && (two = 2);",
+          "  one = (one === undefined) ? 1 : one;",
+          "  two = (two === undefined) ? 2 : two;",
           "};",
           "f(1); f(1,2,3);"
     ));
@@ -996,8 +1003,8 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     test("function f(zero, one = 1, two = 2) {}; f();",
         Joiner.on('\n').join(
           "function f(zero, one, two) {",
-          "  one === undefined && (one = 1);",
-          "  two === undefined && (two = 2);",
+          "  one = (one === undefined) ? 1 : one;",
+          "  two = (two === undefined) ? 2 : two;",
           "}; f();"
         ),
         null,
@@ -1029,7 +1036,7 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     test("function f(zero, one = 1, ...two) {}",
         Joiner.on('\n').join(
         "function f(zero, one, two) {",
-        "  one === undefined && (one = 1);",
+        "  one = (one === undefined) ? 1 : one;",
         "  two = [].slice.call(arguments, 2);",
         "}"
     ));
@@ -1092,6 +1099,23 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "  console.log(i);",
         "}"
     ));
+  }
+
+  public void testDestructuringForOf() {
+    test(Joiner.on('\n').join(
+      "for ({x} of y) {",
+      "  console.log(x);",
+      "}"
+    ), Joiner.on('\n').join(
+        "for (var $jscomp$iter$0 = $jscomp.makeIterator(y),",
+        "         $jscomp$key$$jscomp$destructuring$var0 = $jscomp$iter$0.next();",
+        "     !$jscomp$key$$jscomp$destructuring$var0.done;",
+        "     $jscomp$key$$jscomp$destructuring$var0 = $jscomp$iter$0.next()) {",
+        "  var $jscomp$destructuring$var0 = $jscomp$key$$jscomp$destructuring$var0.value;",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0;",
+        "  x = $jscomp$destructuring$var1.x",
+        "  console.log(x);",
+        "}"));
   }
 
   public void testSpreadArray() {
@@ -1297,28 +1321,13 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     test("var obj = { *[foo]() {}}", Joiner.on('\n').join(
         "var $jscomp$compprop0 = {};",
         "var obj = (",
-        "  $jscomp$compprop0[foo] = /** @suppress {uselessCode} */ function(){",
-        "     var $jscomp$generator$state = 0;",
-        "     function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "         $jscomp$generator$throw$arg) {",
-        "       while (1) switch ($jscomp$generator$state) {",
-        "         case 0:",
-        "           $jscomp$generator$state = -1;",
-        "         default:",
-        "           return {value: undefined, done: true}",
-        "       }",
-        "     }",
-        "     return { $$iterator: function(){",
-        "       return this",
-        "     },",
-        "     next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "     throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "   };",
-        "  },",
+        "  $jscomp$compprop0[foo] = function*(){},",
         "  $jscomp$compprop0)"));
   }
 
   public void testComputedPropGetterSetter() {
+    languageOut = LanguageMode.ECMASCRIPT5;
+
     testSame("var obj = {get latest () {return undefined;}}");
     testSame("var obj = {set latest (str) {}}");
     test("var obj = {'a' : 2, get l () {return null;}, ['f' + 1] : 1}",
@@ -1352,69 +1361,22 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
     test("class C { *[foo]() { yield 1; } }", Joiner.on('\n').join(
         "/** @constructor @struct */",
         "var C = function() {};",
-        "",
-        "C.prototype[foo] = /** @suppress {uselessCode} */ function() {",
-        "  var $jscomp$generator$state=0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while(1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: 1, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function(){",
-        "      return this;",
-        "    },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "};"
+        "C.prototype[foo] = function*() { yield 1; };"
     ));
 
     test("class C { static *[foo]() { yield 2; } }", Joiner.on('\n').join(
         "/** @constructor @struct */",
         "var C = function() {};",
-        "",
-        "C[foo] = /** @suppress {uselessCode} */ function() {",
-        "  var $jscomp$generator$state=0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while(1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: 2, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function(){",
-        "      return this;",
-        "    },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "};"
+        "C[foo] = function*() { yield 2; };"
+    ));
+  }
+
+  public void testBlockScopedGeneratorFunction() {
+    // Functions defined in a block get translated to a var
+    test("{ function *f() {yield 1;} }", Joiner.on('\n').join(
+        "{",
+        "  var f = function*() { yield 1; };",
+        "}"
     ));
   }
 
@@ -1455,20 +1417,213 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
             "var $jscomp$destructuring$var1 = z();",
             "var x = $jscomp$destructuring$var1[0];",
             "var y = $jscomp$destructuring$var1[1];"));
+  }
 
-    test("var a; [a=1] = b();", null, Es6ToEs3Converter.CANNOT_CONVERT_YET);
-    test("var [a=1] = b();", null, Es6ToEs3Converter.CANNOT_CONVERT_YET);
-    test("var [a, b=1, c] = d();", null, Es6ToEs3Converter.CANNOT_CONVERT_YET);
+  public void testArrayDestructuringDefaultValues() {
+    test("var a; [a=1] = b();", Joiner.on('\n').join(
+        "var a;",
+        "var $jscomp$destructuring$var0 = b()",
+        "a = ($jscomp$destructuring$var0[0] === undefined) ?",
+        "    1 :",
+        "    $jscomp$destructuring$var0[0];"));
+
+    test("var [a=1] = b();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = b()",
+        "var a = ($jscomp$destructuring$var0[0] === undefined) ?",
+        "    1 :",
+        "    $jscomp$destructuring$var0[0];"));
+
+    test("var [a, b=1, c] = d();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0=d();",
+        "var a = $jscomp$destructuring$var0[0];",
+        "var b = ($jscomp$destructuring$var0[1] === undefined) ?",
+        "    1 :",
+        "    $jscomp$destructuring$var0[1];",
+        "var c=$jscomp$destructuring$var0[2]"));
+
+    test("var a; [[a] = ['b']] = [];", Joiner.on('\n').join(
+        "var a;",
+        "var $jscomp$destructuring$var0 = [];",
+        "var $jscomp$destructuring$var1 = ($jscomp$destructuring$var0[0] === undefined)",
+        "    ? ['b']",
+        "    : $jscomp$destructuring$var0[0];",
+        "a = $jscomp$destructuring$var1[0]"));
   }
 
   public void testArrayDestructuringParam() {
-    test("function f([x,y]) { use(x); use(y); }", null,
-        Es6ToEs3Converter.CANNOT_CONVERT_YET);
+    test("function f([x,y]) { use(x); use(y); }", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0;",
+        "  var x = $jscomp$destructuring$var1[0];",
+        "  var y = $jscomp$destructuring$var1[1];",
+        "  use(x);",
+        "  use(y);",
+        "}"));
+
+    test("function f([x, , y]) { use(x); use(y); }", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0;",
+        "  var x = $jscomp$destructuring$var1[0];",
+        "  var y = $jscomp$destructuring$var1[2];",
+        "  use(x);",
+        "  use(y);",
+        "}"));
   }
 
   public void testArrayDestructuringRest() {
-    test("let [one, ...others] = f();", null,
-        Es6ToEs3Converter.CANNOT_CONVERT_YET);
+    test("let [one, ...others] = f();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = f();",
+        "var one = $jscomp$destructuring$var0[0];",
+        "var others = [].slice.call($jscomp$destructuring$var0, 1);"));
+
+    test("function f([first, ...rest]) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0;",
+        "  var first = $jscomp$destructuring$var1[0];",
+        "  var rest = [].slice.call($jscomp$destructuring$var1, 1);",
+        "}"));
+  }
+
+  public void testObjectDestructuring() {
+    test("var {a: b, c: d} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = $jscomp$destructuring$var0.a;",
+        "var d = $jscomp$destructuring$var0.c;"));
+
+    test("var {a,b} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var a = $jscomp$destructuring$var0.a;",
+        "var b = $jscomp$destructuring$var0.b;"));
+
+    test("var x; ({a: x}) = foo();", Joiner.on('\n').join(
+        "var x;",
+        "var $jscomp$destructuring$var0 = foo();",
+        "x = $jscomp$destructuring$var0.a;"));
+  }
+
+  public void testObjectDestructuringWithInitializer() {
+    test("var {a : b = 'default'} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = ($jscomp$destructuring$var0.a === undefined) ?",
+        "    'default' :",
+        "    $jscomp$destructuring$var0.a"));
+
+    test("var {a = 'default'} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var a = ($jscomp$destructuring$var0.a === undefined) ?",
+        "    'default' :",
+        "    $jscomp$destructuring$var0.a"));
+  }
+
+  public void testObjectDestructuringNested() {
+    test("var {a: {b}} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var $jscomp$destructuring$var1 = $jscomp$destructuring$var0.a;",
+        "var b = $jscomp$destructuring$var1.b"));
+  }
+
+  public void testObjectDestructuringComputedProps() {
+    test("var {[a]: b} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = $jscomp$destructuring$var0[a];"));
+
+    test("({[a]: b}) = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "b = $jscomp$destructuring$var0[a];"));
+
+    test("var {[foo()]: x = 5} = {};", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = {};",
+        "var $jscomp$destructuring$var1 = $jscomp$destructuring$var0[foo()];",
+        "var x = $jscomp$destructuring$var1 === undefined ?",
+        "    5 : $jscomp$destructuring$var1"));
+
+    test("function f({['KEY']: x}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var x = $jscomp$destructuring$var1['KEY']",
+        "}"));
+  }
+
+  public void testObjectDestructuringStrangeProperties() {
+    test("var {5: b} = foo();",  Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = $jscomp$destructuring$var0['5']"));
+
+    test("var {0.1: b} = foo();",  Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = $jscomp$destructuring$var0['0.1']"));
+
+    test("var {'str': b} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var b = $jscomp$destructuring$var0['str']"));
+  }
+
+  public void testObjectDestructuringFunction() {
+    test("function f({a: b}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var b = $jscomp$destructuring$var1.a",
+        "}"));
+
+    test("function f({a}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var a = $jscomp$destructuring$var1.a",
+        "}"));
+
+    test("function f({k: {subkey : a}}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var $jscomp$destructuring$var2 = $jscomp$destructuring$var1.k;",
+        "  var a = $jscomp$destructuring$var2.subkey;",
+        "}"));
+
+    test("function f({k: [x, y, z]}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var $jscomp$destructuring$var2 = $jscomp$destructuring$var1.k;",
+        "  var x = $jscomp$destructuring$var2[0];",
+        "  var y = $jscomp$destructuring$var2[1];",
+        "  var z = $jscomp$destructuring$var2[2];",
+        "}"));
+
+    test("function f({key: x = 5}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var x = $jscomp$destructuring$var1.key === undefined ?",
+        "      5 : $jscomp$destructuring$var1.key",
+        "}"));
+
+    test("function f({[key]: x = 5}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var $jscomp$destructuring$var2 = $jscomp$destructuring$var1[key]",
+        "  var x = $jscomp$destructuring$var2 === undefined ?",
+        "      5 : $jscomp$destructuring$var2",
+        "}"));
+
+    test("function f({x = 5}) {}", Joiner.on('\n').join(
+        "function f($jscomp$destructuring$var0) {",
+        "  var $jscomp$destructuring$var1 = $jscomp$destructuring$var0",
+        "  var x = $jscomp$destructuring$var1.x === undefined ?",
+        "      5 : $jscomp$destructuring$var1.x",
+        "}"));
+  }
+
+  public void testMixedDestructuring() {
+    test("var [a,{b,c}] = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var a = $jscomp$destructuring$var0[0];",
+        "var $jscomp$destructuring$var1 = $jscomp$destructuring$var0[1];",
+        "var b=$jscomp$destructuring$var1.b;",
+        "var c=$jscomp$destructuring$var1.c"));
+
+    test("var {a,b:[c,d]} = foo();", Joiner.on('\n').join(
+        "var $jscomp$destructuring$var0 = foo();",
+        "var a = $jscomp$destructuring$var0.a;",
+        "var $jscomp$destructuring$var1 = $jscomp$destructuring$var0.b;",
+        "var c = $jscomp$destructuring$var1[0];",
+        "var d = $jscomp$destructuring$var1[1]"));
   }
 
   public void testUntaggedTemplateLiteral() {
@@ -1540,1491 +1695,6 @@ public class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var $jscomp$templatelit$0 = ['', ' world'];",
         "$jscomp$templatelit$0['raw'] = ['', ' world'];",
         "a.b($jscomp$templatelit$0, hello);"
-    ));
-  }
-
-  public void testSimpleGenerator() {
-    test("function *f() {}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "}"
-    ));
-
-    test("function *f() {yield 1;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: 1, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "}"
-    ));
-
-    test("/** @param {*} a */ function *f(a, b) {}", Joiner.on('\n').join(
-        "/** @param {*} a @suppress {uselessCode} */",
-        "function f(a, b) {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  };",
-        "}"
-    ));
-
-    test("function *f(a, b) {var i = 0, j = 2;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f(a, b) {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  var i;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        i = 0;",
-        "        j = 2;",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { var i = 0; yield i; i = 1; yield i; i = i + 1; yield i;}",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var i;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        i = 0;",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: i, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        i = 1;",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: i, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        i = i + 1;",
-        "        $jscomp$generator$state = 5;",
-        "        return {value: i, done: false};",
-        "      case 5:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 6; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 6:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    // A generator defined in a block.
-    test("{ function *f() {yield 1;} }", Joiner.on('\n').join(
-        "{",
-        "  var f = /** @suppress {uselessCode} */ function() {",
-        "    var $jscomp$generator$state = 0;",
-        "    function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "        $jscomp$generator$throw$arg) {",
-        "      while (1) switch ($jscomp$generator$state) {",
-        "        case 0:",
-        "          $jscomp$generator$state = 1;",
-        "          return {value: 1, done: false};",
-        "        case 1:",
-        "          if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "            $jscomp$generator$state = 2; break;",
-        "          }",
-        "          $jscomp$generator$state = -1;",
-        "          throw $jscomp$generator$throw$arg;",
-        "        case 2:",
-        "          $jscomp$generator$state = -1;",
-        "        default:",
-        "          return {value: undefined, done: true}",
-        "      }",
-        "    }",
-        "    return {",
-        "      $$iterator: function() { return this; },",
-        "      next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "      throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "    }",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testReturnGenerator() {
-    test("function f() { return function *g() {yield 1;} }", Joiner.on('\n').join(
-        "function f() {",
-        "  return /** @suppress {uselessCode} */ function g() {",
-        "    var $jscomp$generator$state = 0;",
-        "    function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "        $jscomp$generator$throw$arg) {",
-        "      while (1) switch ($jscomp$generator$state) {",
-        "        case 0:",
-        "          $jscomp$generator$state = 1;",
-        "          return {value: 1, done: false};",
-        "        case 1:",
-        "          if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "            $jscomp$generator$state = 2; break;",
-        "          }",
-        "          $jscomp$generator$state = -1;",
-        "          throw $jscomp$generator$throw$arg;",
-        "        case 2:",
-        "          $jscomp$generator$state = -1;",
-        "        default:",
-        "          return {value: undefined, done: true}",
-        "      }",
-        "    }",
-        "    return {",
-        "      $$iterator: function() { return this; },",
-        "      next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "      throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "    };",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testNestedGenerator() {
-    test("function *f() { function *g() {yield 2;} yield 1; }",
-        Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  /** @suppress {uselessCode} */",
-        "  function g() {",
-        "    var $jscomp$generator$state = 0;",
-        "    function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "        $jscomp$generator$throw$arg) {",
-        "      while (1) switch ($jscomp$generator$state) {",
-        "        case 0:",
-        "          $jscomp$generator$state = 1;",
-        "           return {value: 2, done: false};",
-        "        case 1:",
-        "          if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "            $jscomp$generator$state = 2; break;",
-        "          }",
-        "          $jscomp$generator$state = -1;",
-        "          throw $jscomp$generator$throw$arg;",
-        "        case 2:",
-        "          $jscomp$generator$state = -1;",
-        "        default:",
-        "          return {value: undefined, done: true}",
-        "      }",
-        "    }",
-        "    return {",
-        "      $$iterator: function() { return this; },",
-        "      next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "      throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "    }",
-        "  }",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "         return {value: 1, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-
-  public void testForLoopsGenerator() {
-    test("function *f() {var i = 0; for (var j = 0; j < 10; j++) { i += j; } yield i;}",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var i;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        i = 0;",
-        "        for (var j = 0; j < 10; j++) { i += j; }",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: i, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { for (var j = 0; j < 10; j++) { yield j; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 3; break; }",
-        "        $jscomp$generator$state = 4;",
-        "        return {value: j, done: false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "      case 2:",
-        "        j++",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testWhileLoopsGenerator() {
-    test("function *f() {var i = 0; while (i < 10) { i++; i++; i++; } yield i;}",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var i;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        i = 0;",
-        "        while (i < 10) { i ++; i++; i++; }",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: i, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { var j = 0; while (j < 10) { yield j; j++; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 2; break; }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: j, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        j++",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "      }",
-        "    }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorCannotConvertYet() {
-    test(Joiner.on('\n').join(
-        "function *f() {",
-        "  var i = 0; for (var j = 0; j < 10; j++) { i += j; throw 5; } yield i;",
-        "}"
-    ), Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  var i;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        i = 0;",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) {",
-        "          $jscomp$generator$state = 3;",
-        "          break;",
-        "        }",
-        "        i += j;",
-        "        $jscomp$generator$state = -1;",
-        "        throw 5;",
-        "      case 2:",
-        "        j++;",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 3:",
-        "        $jscomp$generator$state = 4;",
-        "        return {value: i, done: false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() {switch (i) {default: case 1: yield 1;}}",
-      null, Es6ToEs3Converter.CANNOT_CONVERT_YET);
-
-    test("function *f() { l: if (true) { var x = 5; break l; x++; yield x; }; }",
-      null, Es6ToEs3Converter.CANNOT_CONVERT_YET);
-  }
-
-  public void testThrowGenerator() {
-    test("function *f() {throw 1;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "        throw 1;",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testLabelsGenerator() {
-    test("function *f() { l: if (true) { break l; } }", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        l: if (true) { break l; }",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { l: for (;;) { yield i; continue l; } }", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "      case 1:",
-        "        if (!true) { $jscomp$generator$state = 2; break; }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: i, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testIfGenerator() {
-    test("function *f() { var j = 0; if (j < 1) { yield j; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "        if (!(j < 1)) { $jscomp$generator$state = 1; break; }",
-        "        $jscomp$generator$state = 2;",
-        "        return {value: j, done: false};",
-        "      case 2:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 3; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 3:",
-        "      case 1:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f(i) { if (i < 1) { yield i; } else { yield 1; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f(i) {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        if (!(i < 1)) { $jscomp$generator$state = 1; break; }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: i, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 2;",
-        "        break;",
-        "      case 1:",
-        "        $jscomp$generator$state = 5;",
-        "        return {value: 1, done: false};",
-        "      case 5:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 6; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 6:",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorReturn() {
-    test("function *f() { return 1; }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "        return {value: 1, done: true};",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorBreakContinue() {
-    test("function *f() { var j = 0; while (j < 10) { yield j; break; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 2; break; }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: j, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 2;",
-        "        break;",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { var j = 0; while (j < 10) { yield j; continue; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 2; break; }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: j, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { for (var j = 0; j < 10; j++) { yield j; break; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 3; break; }",
-        "        $jscomp$generator$state = 4;",
-        "        return {value: j, done: false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "        $jscomp$generator$state = 3;",
-        "        break;",
-        "      case 2:",
-        "        j++;",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() { for (var j = 0; j < 10; j++) { yield j; continue; } }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var j;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        j = 0;",
-        "      case 1:",
-        "        if (!(j < 10)) { $jscomp$generator$state = 3; break; }",
-        "        $jscomp$generator$state = 4;",
-        "        return {value: j, done: false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "        $jscomp$generator$state = 2;",
-        "        break;",
-        "      case 2:",
-        "        j++;",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testDoWhileLoopsGenerator() {
-    test("function *f() { do { yield j; } while (j < 10); }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$first$do;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$first$do = true;",
-        "      case 1:",
-        "        if (!($jscomp$generator$first$do || j < 10)) {",
-        "          $jscomp$generator$state = 3; break; }",
-        "        $jscomp$generator$state = 4;",
-        "        return {value: j, done: false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "      case 2:",
-        "        $jscomp$generator$first$do = false;",
-        "        $jscomp$generator$state = 1;",
-        "        break",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldNoValue() {
-    test("function *f() { yield; }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: undefined, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testReturnNoValue() {
-    test("function *f() { return; }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "        return {value: undefined, done: true};",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldExpression() {
-    test("function *f() { return (yield 1); }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$next$arg0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: 1, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$next$arg0 = $jscomp$generator$next$arg;",
-        "        $jscomp$generator$state = -1;",
-        "        return {value: $jscomp$generator$next$arg0, done: true};",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testFunctionInGenerator() {
-    test("function *f() { function g() {} }",
-      Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function g() {}",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldAll() {
-    test("function *f() {yield * n;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$yield$entry;",
-        "  var $jscomp$generator$yield$all;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$yield$all = $jscomp.makeIterator(n);",
-        "      case 1:",
-        "        if (!!($jscomp$generator$yield$entry =",
-        "            $jscomp$generator$yield$all.next()).done) {",
-        "          $jscomp$generator$state = 2;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: $jscomp$generator$yield$entry.value, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-
-    test("function *f() {var i = yield * n;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var i;",
-        "  var $jscomp$generator$yield$entry;",
-        "  var $jscomp$generator$yield$all;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$yield$all = $jscomp.makeIterator(n);",
-        "      case 1:",
-        "        if (!!($jscomp$generator$yield$entry =",
-        "            $jscomp$generator$yield$all.next()).done) {",
-        "          $jscomp$generator$state = 2;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$state = 3;",
-        "        return {value: $jscomp$generator$yield$entry.value, done: false};",
-        "      case 3:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 4; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 4:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 2:",
-        "        i = $jscomp$generator$yield$entry.value;",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldArguments() {
-    test("function *f() {yield arguments[0];}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$arguments = arguments;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: $jscomp$generator$arguments[0], done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldThis() {
-    test("function *f() {yield this;}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$this = this;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$state = 1;",
-        "        return {value: $jscomp$generator$this, done: false};",
-        "      case 1:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 2; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testYieldSwitch() {
-    test(Joiner.on('\n').join(
-        "function *f() {",
-        "  while (1) {",
-        "    switch (i) {",
-        "      case 1:",
-        "        yield 2;",
-        "        break;",
-        "      case 2:",
-        "        yield 3;",
-        "        continue;",
-        "      case 3:",
-        "        yield 4;",
-        "      default:",
-        "        yield 5;",
-        "    }",
-        "  }",
-        "}"
-    ), Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var $jscomp$generator$switch$val1;",
-        "  var $jscomp$generator$switch$entered0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "      case 1:",
-        "        if (!1) {",
-        "          $jscomp$generator$state = 2;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$switch$entered0 = false;",
-        "        $jscomp$generator$switch$val1 = i;",
-        "        if (!($jscomp$generator$switch$entered0",
-        "            || $jscomp$generator$switch$val1 === 1)) {",
-        "          $jscomp$generator$state = 4;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$switch$entered0 = true;",
-        "        $jscomp$generator$state = 5;",
-        "        return {value: 2, done: false};",
-        "      case 5:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 6; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 6:",
-        "        $jscomp$generator$state = 3;",
-        "        break;",
-        "      case 4:",
-        "        if (!($jscomp$generator$switch$entered0",
-        "            || $jscomp$generator$switch$val1 === 2)) {",
-        "          $jscomp$generator$state = 7;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$switch$entered0 = true;",
-        "        $jscomp$generator$state = 8;",
-        "        return {value: 3, done: false};",
-        "      case 8:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 9; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 9:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 7:",
-        "        if (!($jscomp$generator$switch$entered0",
-        "            || $jscomp$generator$switch$val1 === 3)) {",
-        "          $jscomp$generator$state = 10;",
-        "          break;",
-        "        }",
-        "        $jscomp$generator$switch$entered0 = true;",
-        "        $jscomp$generator$state = 11;",
-        "        return{value: 4, done: false};",
-        "      case 11:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 12; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 12:",
-        "      case 10:",
-        "        $jscomp$generator$switch$entered0 = true;",
-        "        $jscomp$generator$state = 13;",
-        "        return {value: 5, done: false};",
-        "      case 13:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 14; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 14:",
-        "      case 3:",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorNoTranslate() {
-    test("function *f() { if (1) { try {} catch (e) {} throw 1; } }", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        if (!1) {",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "        try {} catch (e) {}",
-        "        $jscomp$generator$state = -1;",
-        "        throw 1;",
-        "      case 1:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorForIn() {
-    test("function *f() { for (var i in j) { yield 1; } }", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var i;",
-        "  var $jscomp$generator$forin$var0;",
-        "  var $jscomp$generator$forin$array0;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        $jscomp$generator$forin$array0 = [];",
-        "        for ($jscomp$generator$forin$var0 in j) {",
-        "          $jscomp$generator$forin$array0.push($jscomp$generator$forin$var0);",
-        "        }",
-        "        $jscomp$generator$forin$var0 = 0;",
-        "      case 1:",
-        "        if (!($jscomp$generator$forin$var0",
-        "            < $jscomp$generator$forin$array0.length)) {",
-        "          $jscomp$generator$state = 3;",
-        "          break;",
-        "        }",
-        "        i = $jscomp$generator$forin$array0[$jscomp$generator$forin$var0];",
-        "        $jscomp$generator$state = 4;",
-        "        return{value:1, done:false};",
-        "      case 4:",
-        "        if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "          $jscomp$generator$state = 5; break;",
-        "        }",
-        "        $jscomp$generator$state = -1;",
-        "        throw $jscomp$generator$throw$arg;",
-        "      case 5:",
-        "      case 2:",
-        "        $jscomp$generator$forin$var0++;",
-        "        $jscomp$generator$state = 1;",
-        "        break;",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorTryCatch() {
-    test("function *f() {try {yield 1;} catch (e) {}}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var e;",
-        "  var $jscomp$generator$global$error;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        try {",
-        "          $jscomp$generator$state = 3;",
-        "          return {value: 1, done: false};",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 3:",
-        "        try {",
-        "          if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "            $jscomp$generator$state = 4; break;",
-        "          }",
-        "          $jscomp$generator$state = -1;",
-        "          throw $jscomp$generator$throw$arg;",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 4:",
-        "        try {",
-        "          $jscomp$generator$state = 2;",
-        "          break;",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 1:",
-        "        e = $jscomp$generator$global$error;",
-        "      case 2:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
-    ));
-  }
-
-  public void testGeneratorFinally() {
-    test("function *f() {try {yield 1;} catch (e) {} finally {b();}}", Joiner.on('\n').join(
-        "/** @suppress {uselessCode} */",
-        "function f() {",
-        "  var $jscomp$generator$state = 0;",
-        "  var e;",
-        "  var $jscomp$generator$finally0;",
-        "  var $jscomp$generator$global$error;",
-        "  function $jscomp$generator$impl($jscomp$generator$next$arg,",
-        "      $jscomp$generator$throw$arg) {",
-        "    while (1) switch ($jscomp$generator$state) {",
-        "      case 0:",
-        "        try {",
-        "          $jscomp$generator$state = 4;",
-        "          return {value: 1, done: false};",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 4:",
-        "        try {",
-        "          if (!($jscomp$generator$throw$arg !== undefined)) {",
-        "            $jscomp$generator$state = 5; break;",
-        "          }",
-        "          $jscomp$generator$state = -1;",
-        "          throw $jscomp$generator$throw$arg;",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 5:",
-        "        try {",
-        "          $jscomp$generator$finally0 = 3;",
-        "          $jscomp$generator$state = 2;",
-        "          break;",
-        "        } catch ($jscomp$generator$e) {",
-        "          $jscomp$generator$global$error = $jscomp$generator$e;",
-        "          $jscomp$generator$state = 1;",
-        "          break;",
-        "        }",
-        "      case 1:",
-        "        e = $jscomp$generator$global$error;",
-        "        $jscomp$generator$finally0 = 3;",
-        "      case 2:",
-        "        b();",
-        "        $jscomp$generator$state = $jscomp$generator$finally0;",
-        "        break;",
-        "      case 3:",
-        "        $jscomp$generator$state = -1;",
-        "      default:",
-        "        return {value: undefined, done: true}",
-        "    }",
-        "  }",
-        "  return {",
-        "    $$iterator: function() { return this; },",
-        "    next: function(arg){ return $jscomp$generator$impl(arg, undefined); },",
-        "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
-        "  }",
-        "}"
     ));
   }
 

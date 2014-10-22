@@ -65,7 +65,11 @@ abstract class CompilerTypeTestCase extends BaseJSTypeTestCase {
 
   /** A default set of externs for testing. */
   static final String DEFAULT_EXTERNS =
-      "/** @constructor \n * @param {*=} opt_value */ " +
+      "/**\n" +
+      " * @constructor\n" +
+      " * @param {*=} opt_value\n" +
+      " * @return {!Object}\n" +
+      " */\n" +
       "function Object(opt_value) {}" +
       "/** @constructor \n * @param {*} var_args */ " +
       "function Function(var_args) {}" +
@@ -77,7 +81,12 @@ abstract class CompilerTypeTestCase extends BaseJSTypeTestCase {
       "/** @param {number} sliceArg */\n" +
       "String.prototype.slice = function(sliceArg) {};" +
       "/** @type {number} */ String.prototype.length;" +
-      "/** @constructor \n * @param {*} var_args \n @return {!Array} */" +
+      "/**\n" +
+      " * @template T\n" +
+      " * @constructor\n" +
+      " * @param {*} var_args\n" +
+      " * @return {!Array.<?>}\n" +
+      " */\n" +
       "function Array(var_args) {}\n" +
       "/** @type {number} */ Array.prototype.length;\n" +
       "/**\n" +

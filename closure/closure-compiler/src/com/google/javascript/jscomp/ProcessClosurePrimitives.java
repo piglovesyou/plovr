@@ -42,6 +42,7 @@ import javax.annotation.Nullable;
  * goog.require has a corresponding goog.provide and some closure specific
  * simplifications.
  *
+ * @author chrisn@google.com (Chris Nokleberg)
  */
 class ProcessClosurePrimitives extends AbstractPostOrderCallback
     implements HotSwapCompilerPass {
@@ -209,8 +210,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
     String name = n.getChildAtIndex(1).getString();
     Node value = n.getChildAtIndex(2).detachFromParent();
 
-    Node replacement = NodeUtil.newQualifiedNameNodeDeclaration(
-        compiler.getCodingConvention(), name, value, n.getJSDocInfo());
+    Node replacement = NodeUtil.newQNameDeclaration(
+        compiler, name, value, n.getJSDocInfo());
     replacement.useSourceInfoIfMissingFromForTree(n);
     parent.getParent().replaceChild(parent, replacement);
     compiler.reportCodeChange();
@@ -554,8 +555,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
       // We're good to go.
       n.replaceChild(
           callee,
-          NodeUtil.newQualifiedNameNode(
-            compiler.getCodingConvention(),
+          NodeUtil.newQName(
+            compiler,
             String.format("%s.call", baseClassNode.getQualifiedName()),
             callee, "goog.base"));
       compiler.reportCodeChange();
@@ -581,8 +582,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
           enclosingFnNameNode.getFirstChild().getFirstChild();
       n.replaceChild(
           callee,
-          NodeUtil.newQualifiedNameNode(
-            compiler.getCodingConvention(),
+          NodeUtil.newQName(
+            compiler,
             String.format("%s.superClass_.%s.call",
                 className.getQualifiedName(), methodName),
             callee, "goog.base"));
@@ -657,7 +658,7 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
       Node enclosingParent = enclosingFnNameNode.getParent();
       Node maybeInheritsExpr = (enclosingParent.isAssign() ?
           enclosingParent.getParent() : enclosingParent).getNext();
-      while (maybeInheritsExpr.isEmpty()) {
+      while (maybeInheritsExpr != null && maybeInheritsExpr.isEmpty()) {
         maybeInheritsExpr = maybeInheritsExpr.getNext();
       }
       Node baseClassNode = null;
@@ -698,8 +699,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
       // We're good to go.
       n.replaceChild(
           callee,
-          NodeUtil.newQualifiedNameNode(
-            compiler.getCodingConvention(),
+          NodeUtil.newQName(
+            compiler,
             String.format("%s.call", baseClassNode.getQualifiedName()),
             callee, enclosingQname + ".base"));
       n.removeChild(methodNameNode);
@@ -751,8 +752,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
           enclosingFnNameNode.getFirstChild().getFirstChild();
       n.replaceChild(
           callee,
-          NodeUtil.newQualifiedNameNode(
-            compiler.getCodingConvention(),
+          NodeUtil.newQName(
+            compiler,
             String.format("%s.superClass_.%s.call",
                 className.getQualifiedName(), methodName),
             callee, enclosingQname + ".base"));
@@ -1386,8 +1387,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
     private Node makeAssignmentExprNode() {
       Node decl = IR.exprResult(
           IR.assign(
-              NodeUtil.newQualifiedNameNode(
-                  compiler.getCodingConvention(), namespace,
+              NodeUtil.newQName(
+                  compiler, namespace,
                   firstNode /* real source info will be filled in below */,
                   namespace),
               createNamespaceLiteral()));
@@ -1473,8 +1474,8 @@ class ProcessClosurePrimitives extends AbstractPostOrderCallback
     }
 
     String name = n.getString();
-    Node syntheticRef = NodeUtil.newQualifiedNameNode(
-        compiler.getCodingConvention(), name,
+    Node syntheticRef = NodeUtil.newQName(
+        compiler, name,
         n /* real source offsets will be filled in below */,
         name);
 

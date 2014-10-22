@@ -28,6 +28,7 @@ import com.google.javascript.rhino.Token;
  *
  * <p>This implementation is not thread-safe.</p>
  *
+ * @author moz@google.com (Michael Zhou)
  */
 class Es6SyntacticScopeCreator implements ScopeCreator {
   private final AbstractCompiler compiler;
@@ -107,8 +108,18 @@ class Es6SyntacticScopeCreator implements ScopeCreator {
   }
 
   private void declareLHS(Scope declarationScope, Node lhs) {
-    if (lhs.isName() || lhs.isStringKey() || lhs.isRest()) {
+    if (lhs.isStringKey()) {
+      if (lhs.hasChildren()) {
+        declareLHS(declarationScope, lhs.getFirstChild());
+      } else {
+        declareVar(declarationScope, lhs);
+      }
+    } else if (lhs.isComputedProp()) {
+      declareLHS(declarationScope, lhs.getLastChild());
+    } else if (lhs.isName() || lhs.isRest()) {
       declareVar(declarationScope, lhs);
+    } else if (lhs.isDefaultValue()) {
+      declareLHS(declarationScope, lhs.getFirstChild());
     } else if (lhs.isArrayPattern() || lhs.isObjectPattern()) {
       for (Node child = lhs.getFirstChild(); child != null; child = child.getNext()) {
         if (NodeUtil.isNameDeclaration(lhs.getParent()) && child.getNext() == null) {
@@ -121,7 +132,7 @@ class Es6SyntacticScopeCreator implements ScopeCreator {
         declareLHS(declarationScope, child);
       }
     } else {
-      Preconditions.checkState(lhs.isEmpty());
+      Preconditions.checkState(lhs.isEmpty(), "Invalid left-hand side: %s", lhs);
     }
   }
 
@@ -174,15 +185,14 @@ class Es6SyntacticScopeCreator implements ScopeCreator {
 
       case Token.CATCH:
         Preconditions.checkState(n.getChildCount() == 2);
-        Preconditions.checkState(n.getFirstChild().isName());
         // the first child is the catch var and the second child
         // is the code block
 
-        final Node var = n.getFirstChild();
-        final Node block = var.getNext();
+        final Node exception = n.getFirstChild();
+        final Node block = exception.getNext();
 
         if (isNodeAtCurrentLexicalScope(n)) {
-          declareVar(var);
+          declareLHS(scope, exception);
         }
         scanVars(block);
         return;  // only one child to scan
@@ -233,7 +243,8 @@ class Es6SyntacticScopeCreator implements ScopeCreator {
    * @param n The node corresponding to the variable name.
    */
   private void declareVar(Scope s, Node n) {
-    Preconditions.checkState(n.isName() || n.isRest() || n.isStringKey());
+    Preconditions.checkState(n.isName() || n.isRest() || n.isStringKey(),
+        "Invalid node for declareVar: %s", n);
 
     String name = n.getString();
     // Because of how we scan the variables, it is possible to encounter

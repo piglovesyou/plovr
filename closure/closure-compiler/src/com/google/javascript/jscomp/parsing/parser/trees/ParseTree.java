@@ -103,7 +103,6 @@ public class ParseTree {
   public ObjectLiteralExpressionTree asObjectLiteralExpression() {
     return (ObjectLiteralExpressionTree) this; }
   public ObjectPatternTree asObjectPattern() { return (ObjectPatternTree) this; }
-  public ObjectPatternFieldTree asObjectPatternField() { return (ObjectPatternFieldTree) this; }
   public ParenExpressionTree asParenExpression() { return (ParenExpressionTree) this; }
   public PostfixExpressionTree asPostfixExpression() { return (PostfixExpressionTree) this; }
   public ProgramTree asProgram() { return (ProgramTree) this; }
@@ -172,6 +171,25 @@ public class ParseTree {
       case CALL_EXPRESSION:
       case FUNCTION_DECLARATION:
       case TEMPLATE_LITERAL_EXPRESSION:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  public boolean isValidAssignmentTarget() {
+    ParseTree parseTree = this;
+    while (parseTree.type == ParseTreeType.PAREN_EXPRESSION) {
+      parseTree = parseTree.asParenExpression().expression;
+    }
+
+    switch(parseTree.type) {
+      case IDENTIFIER_EXPRESSION:
+      case MEMBER_EXPRESSION:
+      case MEMBER_LOOKUP_EXPRESSION:
+      case ARRAY_PATTERN:
+      case OBJECT_PATTERN:
+      case DEFAULT_PARAMETER:
         return true;
       default:
         return false;

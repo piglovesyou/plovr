@@ -20,13 +20,13 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.javascript.jscomp.parsing.Config.LanguageMode;
 import com.google.javascript.jscomp.parsing.ParserRunner.ParseResult;
-import com.google.javascript.jscomp.testing.TestErrorReporter;
 import com.google.javascript.rhino.JSDocInfo;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.SimpleSourceFile;
 import com.google.javascript.rhino.jstype.StaticSourceFile;
 import com.google.javascript.rhino.testing.BaseJSTypeTestCase;
+import com.google.javascript.rhino.testing.TestErrorReporter;
 
 import java.util.List;
 
@@ -45,6 +45,9 @@ public class NewParserTest extends BaseJSTypeTestCase {
 
   private static final String UNEXPECTED_CONTINUE =
       "continue must be inside loop";
+
+  private static final String UNEXPECTED_RETURN =
+      "return must be inside function";
 
   private static final String UNEXPECTED_LABELED_CONTINUE =
       "continue can only use labeles of iteration statements";
@@ -103,6 +106,13 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parseError("while(1) {for(var f = function () { break; };;) {}}", UNLABELED_BREAK);
   }
 
+  public void testBreakInForOf() {
+    parse(""
+        + "for (var x of [1, 2, 3]) {\n"
+        + "  if (x == 2) break;\n"
+        + "}");
+  }
+
   public void testContinueToSwitch() {
     parseError("switch(1) {case(1): continue; }", UNEXPECTED_CONTINUE);
   }
@@ -137,6 +147,27 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parseError(
         "a:switch(1){case(1):function f(){while(1){continue a;}}}",
         UNDEFINED_LABEL + " \"a\"");
+  }
+
+  public void testContinueInForOf() {
+    parse(""
+        + "for (var x of [1, 2, 3]) {\n"
+        + "  if (x == 2) continue;\n"
+        + "}");
+  }
+
+  public void testReturn() {
+    parse("function foo() { return 1; }");
+    parseError("return;", UNEXPECTED_RETURN);
+    parseError("return 1;", UNEXPECTED_RETURN);
+  }
+
+  public void testThrow() {
+    parse("throw Error();");
+    parse("throw new Error();");
+    parse("throw '';");
+    parseError("throw;", "semicolon/newline not allowed after 'throw'");
+    parseError("throw\nError();", "semicolon/newline not allowed after 'throw'");
   }
 
   public void testLabel1() {
@@ -901,8 +932,8 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parseError("for (a; b\n)", "';' expected");
 
     assertNodeEquality(
-        parse("return\na + b"),
-        parse("return; a + b;"));
+        parse("function f() { return\na + b }"),
+        parse("function f() { return; a + b; }"));
 
     assertNodeEquality(
         parse("a = b\n++c"),
@@ -926,7 +957,8 @@ public class NewParserTest extends BaseJSTypeTestCase {
     testMethodInObjectLiteral("var a = {b() { alert('b'); }};");
 
     // Static methods not allowed in object literals.
-    parseError("var a = {static b() { alert('b'); }};", "'}' expected");
+    parseError("var a = {static b() { alert('b'); }};",
+        "Cannot use keyword in short object literal");
   }
 
   private void testMethodInObjectLiteral(String js) {
@@ -942,6 +974,11 @@ public class NewParserTest extends BaseJSTypeTestCase {
     testExtendedObjectLiteral("var a = {b};");
     testExtendedObjectLiteral("var a = {b, c};");
     testExtendedObjectLiteral("var a = {b, c: d, e};");
+
+    parseError("var a = { '!@#$%' };", "':' expected");
+    parseError("var a = { 123 };", "':' expected");
+    parseError("var a = { let };", "Cannot use keyword in short object literal");
+    parseError("var a = { else };", "Cannot use keyword in short object literal");
   }
 
   private void testExtendedObjectLiteral(String js) {
@@ -1162,6 +1199,8 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parse("[x=1,y] = foo();");
     parse("var [x,y=2] = foo();");
     parse("[x,y=2] = foo();");
+
+    parse("[[a] = ['b']] = [];");
   }
 
   public void testArrayDestructuringTrailingComma() {
@@ -1200,19 +1239,56 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parse("var {x, y} = foo();");
     parse("var {x: x, y: y} = foo();");
     parse("var {x: {y, z}} = foo();");
+    parse("var {x: {y: {z}}} = foo();");
 
     // Useless, but legal.
     parse("var {} = foo();");
   }
 
+  public void testObjectDestructuringVarWithInitializer() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("var {x = 1} = foo();");
+    parse("var {x: {y = 1}} = foo();");
+    parse("var {x: y = 1} = foo();");
+    parse("var {x: v1 = 5, y: v2 = 'str'} = foo();");
+    parse("var {k1: {k2 : x} = bar(), k3: y} = foo();");
+  }
+
   public void testObjectDestructuringAssign() {
     mode = LanguageMode.ECMASCRIPT6;
     parse("({x, y}) = foo();");
+    parse("({x, y} = foo());");
     parse("({x: x, y: y}) = foo();");
+    parse("({x: x, y: y} = foo());");
     parse("({x: {y, z}}) = foo();");
+    parse("({x: {y, z}} = foo());");
+    parse("({k1: {k2 : x} = bar(), k3: y}) = foo();");
+    parse("({k1: {k2 : x} = bar(), k3: y} = foo());");
 
     // Useless, but legal.
     parse("({}) = foo();");
+    parse("({} = foo());");
+  }
+
+  public void testObjectDestructuringAssignWithInitializer() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("({x = 1}) = foo();");
+    parse("({x = 1} = foo());");
+    parse("({x: {y = 1}}) = foo();");
+    parse("({x: {y = 1}} = foo());");
+    parse("({x: y = 1}) = foo();");
+    parse("({x: y = 1} = foo());");
+    parse("({x: v1 = 5, y: v2 = 'str'}) = foo();");
+    parse("({x: v1 = 5, y: v2 = 'str'} = foo());");
+    parse("({k1: {k2 : x} = bar(), k3: y}) = foo();");
+    parse("({k1: {k2 : x} = bar(), k3: y} = foo());");
+  }
+
+  public void testObjectDestructuringWithInitializerInvalid() {
+    parseError("var {{x}} = foo();", "'identifier' expected");
+    parseError("({{x}}) = foo();", "'}' expected");
+    parseError("({{a} = {a: 'b'}}) = foo();", "'}' expected");
+    parseError("({{a : b} = {a: 'b'}}) = foo();", "'}' expected");
   }
 
   public void testObjectDestructuringFnDeclaration() {
@@ -1223,6 +1299,55 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parse("function f({x, x}) {}");
   }
 
+  public void testObjectDestructuringComputedProp() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("var {[x]: y} = z;");
+    parse("var { [foo()] : [x,y,z] = bar() } = baz();");
+    parseError("var {[x]} = z;", "'identifier' expected");
+  }
+
+  public void testObjectDestructuringStringAndNumberKeys() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("var {'s': x} = foo();");
+    parse("var {3: x} = foo();");
+
+    parseError("var { 'hello world' } = foo();", "'identifier' expected");
+    parseError("var { 4 } = foo();", "'identifier' expected");
+    parseError("var { 'hello' = 'world' } = foo();", "'identifier' expected");
+    parseError("var { 2 = 5 } = foo();", "'identifier' expected");
+  }
+
+  public void testObjectDestructuringKeywordKeys() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("var {if: x, else: y} = foo();");
+    parse("var {while: x=1, for: y} = foo();");
+    parseError("var {while} = foo();", "'identifier' expected");
+    parseError("var {implements} = foo();", "'identifier' expected");
+  }
+
+  public void testObjectDestructuringComplexTarget() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parseError("var {foo: bar.x} = baz();", "'identifier' expected");
+    parse("({foo: bar.x} = baz());");
+    parse("for ({foo: bar.x} in baz());");
+
+    parseError("var {foo: bar[x]} = baz();", "'identifier' expected");
+    parse("({foo: bar[x]} = baz());");
+    parse("for ({foo: bar[x]} in baz());");
+  }
+
+  public void testObjectDestructuringExtraParens() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("({x}) = y;");
+    parse("(({x})) = y;");
+    parse("((({x}))) = y;");
+
+    parse("([x]) = y;");
+    parse("[x, (y)] = z;");
+    parse("[x, ([y])] = z;");
+    parse("[x, (([y]))] = z;");
+  }
+
   public void testMixedDestructuring() {
     mode = LanguageMode.ECMASCRIPT6;
     parse("var {x: [y, z]} = foo();");
@@ -1231,8 +1356,35 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parse("({x: [y, z]} = foo());");
     parse("[x, {y, z}] = foo();");
 
-    parse("function f([x, {y, z}]) {}");
     parse("function f({x: [y, z]}) {}");
+    parse("function f([x, {y, z}]) {}");
+  }
+
+  public void testMixedDestructuringWithInitializer() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parse("var {x: [y, z] = [1, 2]} = foo();");
+    parse("var [x, {y, z} = {y: 3, z: 4}] = foo();");
+
+    parse("({x: [y, z] = [1, 2]} = foo());");
+    parse("[x, {y, z} = {y: 3, z: 4}] = foo();");
+
+    parse("function f({x: [y, z] = [1, 2]}) {}");
+    parse("function f([x, {y, z} = {y: 3, z: 4}]) {}");
+  }
+
+  public void testDestructuringNoRHS() {
+    mode = LanguageMode.ECMASCRIPT6;
+    parseError("var {x: y};", "destructuring must have an initializer");
+    parseError("let {x: y};", "destructuring must have an initializer");
+    parseError("const {x: y};", "const variables must have an initializer");
+
+    parseError("var {x};", "destructuring must have an initializer");
+    parseError("let {x};", "destructuring must have an initializer");
+    parseError("const {x};", "const variables must have an initializer");
+
+    parseError("var [x, y];", "destructuring must have an initializer");
+    parseError("let [x, y];", "destructuring must have an initializer");
+    parseError("const [x, y];", "const variables must have an initializer");
   }
 
   public void testComprehensions() {
@@ -1321,7 +1473,7 @@ public class NewParserTest extends BaseJSTypeTestCase {
 
   public void testGettersForbidden4() {
     parseError("var x = {\"a\" getter:function b() { return 3; }};",
-        "'}' expected");
+        "':' expected");
   }
 
   public void testGettersForbidden5() {
@@ -2182,6 +2334,70 @@ public class NewParserTest extends BaseJSTypeTestCase {
     parseError("*()=>1;", "primary expression expected");
   }
 
+  public void testForIn_ES6() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    parse("for (a in b) c;");
+    parse("for (var a in b) c;");
+    parse("for (let a in b) c;");
+    parse("for (const a in b) c;");
+
+    parseError("for (a=1 in b) c;", "';' expected");
+    parseError("for (let a=1 in b) c;",
+        "for-in statement may not have initializer");
+    parseError("for (const a=1 in b) c;",
+        "for-in statement may not have initializer");
+    parseError("for (var a=1 in b) c;",
+        "for-in statement may not have initializer");
+  }
+
+  public void testForIn_ES5() {
+    mode = LanguageMode.ECMASCRIPT5;
+
+    parse("for (a in b) c;");
+    parse("for (var a in b) c;");
+
+    parseError("for (a=1 in b) c;", "';' expected");
+    parseWarning("for (var a=1 in b) c;",
+        "for-in statement should not have initializer");
+  }
+
+  public void testForInDestructuring() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    parse("for ({a} in b) c;");
+    parse("for (var {a} in b) c;");
+    parse("for (let {a} in b) c;");
+    parse("for (const {a} in b) c;");
+
+    parse("for ({a: b} in c) d;");
+    parse("for (var {a: b} in c) d;");
+    parse("for (let {a: b} in c) d;");
+    parse("for (const {a: b} in c) d;");
+
+    parse("for ([a] in b) c;");
+    parse("for (var [a] in b) c;");
+    parse("for (let [a] in b) c;");
+    parse("for (const [a] in b) c;");
+
+    parseError("for ({a: b} = foo() in c) d;", "';' expected");
+    parseError("for (let {a: b} = foo() in c) d;",
+        "for-in statement may not have initializer");
+    parseError("for (const {a: b} = foo() in c) d;",
+        "for-in statement may not have initializer");
+    parseError("for (var {a: b} = foo() in c) d;",
+        "for-in statement may not have initializer");
+
+    parseError("for ([a] = foo() in b) c;",
+        "';' expected");
+    parseError("for (let [a] = foo() in b) c;",
+        "for-in statement may not have initializer");
+    parseError("for (const [a] = foo() in b) c;",
+        "for-in statement may not have initializer");
+    parseError("for (var [a] = foo() in b) c;",
+        "for-in statement may not have initializer");
+  }
+
   public void testForOf1() {
     mode = LanguageMode.ECMASCRIPT6;
 
@@ -2193,13 +2409,82 @@ public class NewParserTest extends BaseJSTypeTestCase {
   public void testForOf2() {
     mode = LanguageMode.ECMASCRIPT6;
 
-    // TODO(johnlenz): is this valid?
-    // parse("for(a=1 of b) c;",
-    //     "for-of statement may not have initializer");
+    parseError("for(a=1 of b) c;", "';' expected");
     parseError("for(let a=1 of b) c;",
         "for-of statement may not have initializer");
     parseError("for(const a=1 of b) c;",
         "for-of statement may not have initializer");
+  }
+
+  public void testInvalidDestructuring() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    // {x: 5} and {x: 'str'} are valid object literals but not valid patterns.
+    parseError("for ({x: 5} in foo()) {}", "Invalid LHS for a for-in loop");
+    parseError("for ({x: 'str'} in foo()) {}", "Invalid LHS for a for-in loop");
+    parseError("var {x: 5} = foo();", "'identifier' expected");
+    parseError("var {x: 'str'} = foo();", "'identifier' expected");
+    parseError("({x: 5} = foo());", "invalid assignment target");
+    parseError("({x: 'str'} = foo());", "invalid assignment target");
+
+    // {method(){}} is a valid object literal but not a valid object pattern.
+    parseError("function f({method(){}}) {}", "'}' expected");
+    parseError("function f({method(){}} = foo()) {}", "'}' expected");
+  }
+
+  public void testForOfPatterns() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    parse("for({x} of b) c;");
+    parse("for({x: y} of b) c;");
+    parse("for([x, y] of b) c;");
+    parse("for([x, ...y] of b) c;");
+
+    parse("for(let {x} of b) c;");
+    parse("for(let {x: y} of b) c;");
+    parse("for(let [x, y] of b) c;");
+    parse("for(let [x, ...y] of b) c;");
+
+    parse("for(const {x} of b) c;");
+    parse("for(const {x: y} of b) c;");
+    parse("for(const [x, y] of b) c;");
+    parse("for(const [x, ...y] of b) c;");
+
+    parse("for(var {x} of b) c;");
+    parse("for(var {x: y} of b) c;");
+    parse("for(var [x, y] of b) c;");
+    parse("for(var [x, ...y] of b) c;");
+  }
+
+  public void testForOfPatternsWithInitializer() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    parseError("for({x}=a of b) c;", "';' expected");
+    parseError("for({x: y}=a of b) c;", "';' expected");
+    parseError("for([x, y]=a of b) c;", "';' expected");
+    parseError("for([x, ...y]=a of b) c;", "';' expected");
+
+    parseError("for(let {x}=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(let {x: y}=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(let [x, y]=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(let [x, ...y]=a of b) c;", "for-of statement may not have initializer");
+
+    parseError("for(const {x}=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(const {x: y}=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(const [x, y]=a of b) c;", "for-of statement may not have initializer");
+    parseError("for(const [x, ...y]=a of b) c;", "for-of statement may not have initializer");
+  }
+
+  public void testImport() {
+    mode = LanguageMode.ECMASCRIPT6;
+
+    parse("import 'someModule'");
+    parse("import d from './someModule'");
+    parse("import {} from './someModule'");
+    parse("import {x, y} from './someModule'");
+    parse("import {x as x1, y as y1} from './someModule'");
+    parse("import {x as x1, y as y1, } from './someModule'");
+    parse("import * as sm from './someModule'");
   }
 
   public void testShebang() {
@@ -2231,7 +2516,7 @@ public class NewParserTest extends BaseJSTypeTestCase {
     ParseResult result = ParserRunner.parse(
         new SimpleSourceFile("input", false),
         source,
-        ParserRunner.createConfig(isIdeMode, isIdeMode, mode, false, null),
+        ParserRunner.createConfig(isIdeMode, mode, false, null),
         testErrorReporter);
     Node script = result.ast;
 
@@ -2253,7 +2538,7 @@ public class NewParserTest extends BaseJSTypeTestCase {
     StaticSourceFile file = new SimpleSourceFile("input", false);
     script = ParserRunner.parse(file,
       string,
-      ParserRunner.createConfig(isIdeMode, isIdeMode, mode, false, null),
+      ParserRunner.createConfig(isIdeMode, mode, false, null),
       testErrorReporter).ast;
 
     // verifying that all warnings were seen

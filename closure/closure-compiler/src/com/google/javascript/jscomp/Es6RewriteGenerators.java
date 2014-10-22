@@ -34,8 +34,7 @@ import java.util.List;
  *
  * @author mattloring@google.com (Matthew Loring)
  */
-public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallback
-    implements HotSwapCompilerPass {
+public class Es6RewriteGenerators implements NodeTraversal.Callback, HotSwapCompilerPass {
   private final AbstractCompiler compiler;
 
   // The current case statement onto which translated statements from the
@@ -88,6 +87,10 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
 
   private static final String GENERATOR_FOR_IN_VAR = "$jscomp$generator$forin$var";
 
+  private static final String GENERATOR_FOR_IN_ITER = "$jscomp$generator$forin$iter";
+
+  private static final String GENERATOR_LOOP_GUARD = "$jscomp$generator$loop$guard";
+
   // Maintains a stack of numbers which identify the cases which mark the end of loops. These
   // are used to manage jump destinations for break and continue statements.
   private List<LoopContext> currentLoopContext;
@@ -111,6 +114,47 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
   @Override
   public void hotSwapScript(Node scriptRoot, Node originalRoot) {
     NodeTraversal.traverse(compiler, scriptRoot, this);
+  }
+
+  @Override
+  public boolean shouldTraverse(NodeTraversal t, Node n, Node parent) {
+    Node enclosing = NodeUtil.getEnclosingFunction(n);
+    if (enclosing == null || !enclosing.isGeneratorFunction()
+        || !NodeUtil.isLoopStructure(n) || NodeUtil.isForIn(n)) {
+      return true;
+    }
+    Node guard = null, incr = null;
+    switch (n.getType()) {
+      case Token.FOR:
+        guard = n.getFirstChild().getNext();
+        incr = guard.getNext();
+        break;
+      case Token.WHILE:
+        guard = n.getFirstChild();
+        incr = IR.empty();
+        break;
+      case Token.DO:
+        guard = n.getLastChild();
+        incr = IR.empty();
+        break;
+    }
+    if (!controlCanExit(guard) && !controlCanExit(incr)) {
+      return true;
+    }
+    Node guardName = IR.name(GENERATOR_LOOP_GUARD + generatorCounter.get());
+    if (!guard.isEmpty()) {
+      Node container = new Node(Token.BLOCK);
+      n.replaceChild(guard, container);
+      container.addChildToFront(IR.block(IR.exprResult(IR.assign(
+        guardName.cloneTree(), guard.cloneTree()))));
+      container.addChildToBack(guardName.cloneTree());
+    }
+    if (!incr.isEmpty()) {
+      n.addChildBefore(IR.block(IR.exprResult(incr.detachFromParent())), n.getLastChild());
+    }
+    Node block = NodeUtil.getEnclosingType(n, Token.BLOCK);
+    block.addChildToFront(IR.var(guardName));
+    return true;
   }
 
   @Override
@@ -167,7 +211,8 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
    * <code>
    * var $jscomp$generator$yield$all = gen();
    * var $jscomp$generator$yield$entry;
-   * while (!($jscomp$generator$yield$entry = $jscomp$generator$yield$all.next()).done) {
+   * while (!($jscomp$generator$yield$entry =
+   *     $jscomp$generator$yield$all.next($jscomp$generator$next$arg)).done) {
    *   yield $jscomp$generator$yield$entry.value;
    * }
    * var i = $jscomp$generator$yield$entry.value;
@@ -176,14 +221,17 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
   private void visitYieldFor(Node n, Node parent) {
     Node enclosingStatement = NodeUtil.getEnclosingStatement(n);
 
-    Node generator = IR.var(IR.name(GENERATOR_YIELD_ALL_NAME),
-        IR.call(NodeUtil.newQualifiedNameNode(
-            compiler.getCodingConvention(), Es6ToEs3Converter.MAKE_ITER), n.removeFirstChild()));
+    Node generator = IR.var(
+        IR.name(GENERATOR_YIELD_ALL_NAME),
+        IR.call(
+            NodeUtil.newQName(compiler, Es6ToEs3Converter.MAKE_ITER),
+            n.removeFirstChild()));
     Node entryDecl = IR.var(IR.name(GENERATOR_YIELD_ALL_ENTRY));
 
     Node assignIterResult = IR.assign(
         IR.name(GENERATOR_YIELD_ALL_ENTRY),
-        IR.call(IR.getprop(IR.name(GENERATOR_YIELD_ALL_NAME), IR.string("next"))));
+        IR.call(IR.getprop(IR.name(GENERATOR_YIELD_ALL_NAME), IR.string("next")),
+            IR.name(GENERATOR_NEXT_ARG)));
     Node loopCondition = IR.not(IR.getprop(assignIterResult, IR.string("done")));
     Node elemValue = IR.getprop(IR.name(GENERATOR_YIELD_ALL_ENTRY), IR.string("value"));
     Node yieldStatement = IR.exprResult(IR.yield(elemValue.cloneTree()));
@@ -221,7 +269,7 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
   private void visitGenerator(Node n, Node parent) {
     hasTranslatedTry = false;
     Node genBlock = compiler.parseSyntheticCode(Joiner.on('\n').join(
-      "{",
+      "function generatorBody() {",
       "  var " + GENERATOR_STATE + " = " + generatorCaseCount + ";",
       "  function $jscomp$generator$impl(" + GENERATOR_NEXT_ARG + ", ",
       "      " + GENERATOR_THROW_ARG + ") {",
@@ -237,7 +285,7 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
       "    throw: function(arg){ return $jscomp$generator$impl(undefined, arg); },",
       "  }",
       "}"
-    )).removeFirstChild();
+    )).getFirstChild().getLastChild().detachFromParent();
     generatorCaseCount++;
 
     originalGeneratorBody = n.getLastChild();
@@ -667,11 +715,15 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
    *
    * <code>
    * $jscomp$arr = []
-   * for ($jscomp$var in j) {
-   *   $jscomp$arr.push($jscomp$var);
+   * $jscomp$iter = j
+   * for (i in $jscomp$iter) {
+   *   $jscomp$arr.push(i);
    * }
    * for ($jscomp$var = 0; $jscomp$var < $jscomp$arr.length; $jscomp$var++) {
    *   i = $jscomp$arr[$jscomp$var];
+   *   if (!(i in $jscomp$iter)) {
+   *     continue;
+   *   }
    *   s;
    * }
    * </code>
@@ -684,26 +736,33 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
     String loopId = generatorCounter.get();
     Node arrayName = IR.name(GENERATOR_FOR_IN_ARRAY + loopId);
     Node varName = IR.name(GENERATOR_FOR_IN_VAR + loopId);
+    Node iterableName = IR.name(GENERATOR_FOR_IN_ITER + loopId);
 
     if (variable.isVar()) {
       variable = variable.removeFirstChild();
     }
-    body.addChildToFront(IR.var(variable,
+    body.addChildToFront(IR.ifNode(
+        IR.not(IR.in(variable.cloneTree(), iterableName.cloneTree())),
+        IR.block(IR.continueNode())));
+    body.addChildToFront(IR.var(variable.cloneTree(),
         IR.getelem(arrayName.cloneTree(), varName.cloneTree())));
     hoistRoot.getParent().addChildAfter(IR.var(arrayName.cloneTree()), hoistRoot);
     hoistRoot.getParent().addChildAfter(IR.var(varName.cloneTree()), hoistRoot);
+    hoistRoot.getParent().addChildAfter(IR.var(iterableName.cloneTree()), hoistRoot);
 
     Node arrayDef = IR.exprResult(IR.assign(arrayName.cloneTree(), IR.arraylit()));
-    Node newForIn = IR.forIn(varName.cloneTree(), iterable,
+    Node iterDef = IR.exprResult(IR.assign(iterableName.cloneTree(), iterable));
+    Node newForIn = IR.forIn(variable.cloneTree(), iterableName,
         IR.block(IR.exprResult(
             IR.call(IR.getprop(arrayName.cloneTree(), IR.string("push")),
-                varName.cloneTree()))));
+                variable))));
     Node newFor = IR.forNode(IR.assign(varName.cloneTree(), IR.number(0)),
         IR.lt(varName.cloneTree(), IR.getprop(arrayName, IR.string("length"))),
         IR.inc(varName, true),
         body);
 
     enclosingBlock.addChildToBack(arrayDef);
+    enclosingBlock.addChildToBack(iterDef);
     enclosingBlock.addChildToBack(newForIn);
     originalGeneratorBody.addChildToFront(newFor);
   }
@@ -734,62 +793,79 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
    */
   private void visitLoop(String label) {
     Node initializer;
-    Node condition;
-    Node postExpression;
+    Node guard;
+    Node incr;
     Node body;
 
+    // Used only in the case of DO loops.
+    Node firstEntry;
+
     if (currentStatement.isWhile()) {
-      condition = currentStatement.removeFirstChild();
+      guard = currentStatement.removeFirstChild();
+      firstEntry = null;
       body = currentStatement.removeFirstChild();
       initializer = IR.empty();
-      postExpression = IR.empty();
+      incr = IR.empty();
     } else if (currentStatement.isFor()) {
       initializer = currentStatement.removeFirstChild();
       if (initializer.isAssign()) {
         initializer = IR.exprResult(initializer);
       }
-      condition = currentStatement.removeFirstChild();
-      if (condition.isEmpty()) {
-        condition = IR.trueNode();
-      }
-      postExpression = currentStatement.removeFirstChild();
+      guard = currentStatement.removeFirstChild();
+      firstEntry = null;
+      incr = currentStatement.removeFirstChild();
       body = currentStatement.removeFirstChild();
     } else {
       Preconditions.checkState(currentStatement.isDo());
-      Node firstEntry = IR.name(GENERATOR_DO_WHILE_INITIAL);
+      firstEntry = IR.name(GENERATOR_DO_WHILE_INITIAL);
       initializer = IR.var(firstEntry.cloneTree(), IR.trueNode());
-      postExpression = IR.assign(firstEntry.cloneTree(), IR.falseNode());
+      incr = IR.assign(firstEntry.cloneTree(), IR.falseNode());
 
       body = currentStatement.removeFirstChild();
-      condition = IR.or(firstEntry, currentStatement.removeFirstChild());
+      guard = currentStatement.removeFirstChild();
     }
 
-    postExpression = postExpression.isEmpty() ? postExpression : IR.exprResult(postExpression);
+    Node condition, prestatement;
+
+    if (guard.isBlock()) {
+      prestatement = guard.removeFirstChild();
+      condition = guard.removeFirstChild();
+    } else {
+      prestatement = IR.block();
+      condition = guard;
+    }
+
+    if (currentStatement.isDo()) {
+      condition = IR.or(firstEntry, condition);
+    }
 
     int loopBeginState = generatorCaseCount++;
     int continueState = loopBeginState;
 
-    if (!postExpression.isEmpty()) {
+    if (!incr.isEmpty()) {
       continueState = generatorCaseCount++;
       Node continueCase = IR.number(continueState);
       continueCase.setGeneratorMarker(true);
       body.addChildToBack(continueCase);
-      body.addChildToBack(postExpression);
+      body.addChildToBack(incr.isBlock() ? incr : IR.exprResult(incr));
     }
 
     currentLoopContext.add(0, new LoopContext(generatorCaseCount, continueState, label));
 
     Node beginCase = IR.number(loopBeginState);
     beginCase.setGeneratorMarker(true);
-    Node conditionalBranch = IR.ifNode(condition, body);
+    Node conditionalBranch = IR.ifNode(condition.isEmpty() ? IR.trueNode() : condition, body);
     Node setStateLoopStart = createStateUpdate(loopBeginState);
     Node breakToStart = createSafeBreak();
 
+    originalGeneratorBody.addChildToFront(conditionalBranch);
+    if (!prestatement.isEmpty()) {
+      originalGeneratorBody.addChildToFront(prestatement);
+    }
     originalGeneratorBody.addChildToFront(beginCase);
     if (!initializer.isEmpty()) {
       originalGeneratorBody.addChildToFront(initializer);
     }
-    originalGeneratorBody.addChildAfter(conditionalBranch, beginCase);
     body.addChildToBack(setStateLoopStart);
     body.addChildToBack(breakToStart);
   }
@@ -879,7 +955,6 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
   }
 
   private boolean controlCanExit(Node n) {
-    Preconditions.checkState(n.getParent() == null);
     ControlExitsCheck exits = new ControlExitsCheck();
     NodeTraversal.traverse(compiler, n, exits);
     return exits.didExit();
@@ -985,10 +1060,8 @@ public class Es6RewriteGenerators extends NodeTraversal.AbstractPostOrderCallbac
             parent.addChildBefore(createFinallyJumpBlock(finallyName, finallyStartState), n);
           }
           break;
-        case Token.EXPR_RESULT:
-          if (n.getFirstChild().isYield()) {
-            exited = true;
-          }
+        case Token.YIELD:
+          exited = true;
           break;
       }
       return true;

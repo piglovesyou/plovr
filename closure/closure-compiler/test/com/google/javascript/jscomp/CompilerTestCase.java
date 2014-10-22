@@ -50,7 +50,7 @@ public abstract class CompilerTestCase extends TestCase  {
   private final List<SourceFile> externsInputs;
 
   /** Whether to compare input and output as trees instead of strings */
-  private final boolean compareAsTree;
+  private boolean compareAsTree;
 
   /** Whether to parse type info from JSDoc comments */
   protected boolean parseTypeInfo;
@@ -63,6 +63,9 @@ public abstract class CompilerTestCase extends TestCase  {
 
   /** True iff closure pass runs before pass being tested. */
   private boolean closurePassEnabled = false;
+
+  /** Whether the closure pass is run on the expected JS. */
+  private boolean closurePassEnabledForExpected = false;
 
   /** True iff type checking pass runs before pass being tested. */
   private boolean typeCheckEnabled = false;
@@ -305,6 +308,10 @@ public abstract class CompilerTestCase extends TestCase  {
     closurePassEnabled = true;
   }
 
+  void enableClosurePassForExpected() {
+    closurePassEnabledForExpected = true;
+  }
+
   /**
    * Perform AST normalization before running the test pass, and anti-normalize
    * after running it.
@@ -379,6 +386,13 @@ public abstract class CompilerTestCase extends TestCase  {
    */
   protected void enableAstValidation(boolean validate) {
     astValidationEnabled = validate;
+  }
+
+  /**
+   * Whether to compare the expected output as a tree or string.
+   */
+  protected void enableCompareAsTree(boolean compareAsTree) {
+    this.compareAsTree = compareAsTree;
   }
 
   /** Whether we should ignore parse warnings for the current test method. */
@@ -810,9 +824,29 @@ public abstract class CompilerTestCase extends TestCase  {
    */
   public void testSame(String externs, String js, DiagnosticType warning,
                        String description) {
+    testSame(externs, js, warning, description, false);
+  }
+
+  /**
+   * Verifies that the compiler pass's JS output is the same as its input
+   * and (optionally) that an expected warning and description is issued.
+   *
+   * @param externs Externs input
+   * @param js Input and output
+   * @param warning Expected warning, or null if no warning is expected
+   * @param description The description of the expected warning,
+   *      or null if no warning is expected or if the warning's description
+   *      should not be examined
+   */
+  public void testSame(String externs, String js, DiagnosticType type,
+                       String description, boolean error) {
     List<SourceFile> externsInputs = ImmutableList.of(
         SourceFile.fromCode("externs", externs));
-    test(externsInputs, js, js, null, warning, description);
+    if (error) {
+      test(externsInputs, js, js, type, null, description);
+    } else {
+      test(externsInputs, js, js, null, type, description);
+    }
   }
 
   /**
@@ -1243,6 +1277,11 @@ public abstract class CompilerTestCase extends TestCase  {
       Normalize normalize = new Normalize(compiler, false);
       normalize.process(externsRoot, mainRoot);
     }
+
+    if (closurePassEnabled && closurePassEnabledForExpected && !compiler.hasErrors()) {
+      new ProcessClosurePrimitives(compiler, null, CheckLevel.ERROR, false)
+          .process(null, mainRoot);
+    }
     return mainRoot;
   }
 
@@ -1272,10 +1311,23 @@ public abstract class CompilerTestCase extends TestCase  {
 
     (getProcessor(compiler)).process(externs, root);
 
-    String externsCode = compiler.toSource(externs);
-    String expectedCode = compiler.toSource(expected);
-
-    assertEquals(expectedCode, externsCode);
+    if (compareAsTree) {
+      // Expected output parsed without implied block.
+      Preconditions.checkState(externs.isBlock());
+      Preconditions.checkState(compareJsDoc);
+      Preconditions.checkState(externs.hasOneChild(),
+          "Compare as tree only works when output has a single script.");
+      externs = externs.getFirstChild();
+      String explanation = expected.checkTreeEqualsIncludingJsDoc(externs);
+      assertNull(
+          "\nExpected: " + compiler.toSource(expected) +
+          "\nResult:   " + compiler.toSource(externs) +
+          "\n" + explanation, explanation);
+    } else {
+      String externsCode = compiler.toSource(externs);
+      String expectedCode = compiler.toSource(expected);
+      assertEquals(expectedCode, externsCode);
+    }
   }
 
   protected Node parseExpectedJs(String expected) {

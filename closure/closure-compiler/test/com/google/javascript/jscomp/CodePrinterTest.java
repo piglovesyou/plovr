@@ -35,13 +35,13 @@ public class CodePrinterTest extends TestCase {
   private boolean allowWarnings = false;
 
   private boolean trustedStrings = true;
-  private boolean preserveJsDoc = false;
+  private boolean preserveTypeAnnotations = false;
   private Compiler lastCompiler = null;
   private LanguageMode languageMode = LanguageMode.ECMASCRIPT5;
 
   @Override public void setUp() {
     allowWarnings = false;
-    preserveJsDoc = false;
+    preserveTypeAnnotations = false;
     trustedStrings = true;
     lastCompiler = null;
     languageMode = LanguageMode.ECMASCRIPT5;
@@ -56,7 +56,7 @@ public class CodePrinterTest extends TestCase {
     lastCompiler = compiler;
     CompilerOptions options = new CompilerOptions();
     options.setTrustedStrings(trustedStrings);
-    options.preserveJsDoc = preserveJsDoc;
+    options.preserveTypeAnnotations = preserveTypeAnnotations;
 
     // Allow getters and setters.
     options.setLanguageIn(languageMode);
@@ -107,7 +107,7 @@ public class CodePrinterTest extends TestCase {
   CompilerOptions newCompilerOptions(boolean prettyprint, int lineThreshold) {
     CompilerOptions options = new CompilerOptions();
     options.setTrustedStrings(trustedStrings);
-    options.preserveJsDoc = preserveJsDoc;
+    options.preserveTypeAnnotations = preserveTypeAnnotations;
     options.setLanguageOut(languageMode);
     options.setPrettyPrint(prettyprint);
     options.setLineLengthThreshold(lineThreshold);
@@ -473,6 +473,15 @@ public class CodePrinterTest extends TestCase {
     languageMode = LanguageMode.ECMASCRIPT6;
     assertPrintSame("({a:{b,c}})=foo()");
     assertPrintSame("({a:{b:{c:{d}}}})=foo()");
+  }
+
+  public void testPrintObjectPatternInitializer() {
+    languageMode = LanguageMode.ECMASCRIPT6;
+    assertPrintSame("({a=1})=foo()");
+    assertPrintSame("({a:{b=2}})=foo()");
+    assertPrintSame("({a:b=2})=foo()");
+    assertPrintSame("({a,b:{c=2}})=foo()");
+    assertPrintSame("({a:{b=2},c})=foo()");
   }
 
   public void testPrintMixedDestructuring() {
@@ -1856,13 +1865,13 @@ public class CodePrinterTest extends TestCase {
     assertPrintSame("3*(4%3*5)");
   }
 
-  public void testPreserveJsDoc() {
-    preserveJsDoc = true;
-    assertPrintSame("/** @type {foo} */var bar");
+  public void testPreserveTypeAnnotations() {
+    preserveTypeAnnotations = true;
+    assertPrintSame("/**@type {foo} */var bar");
     assertPrintSame(
         "function/** void */f(/** string */s,/** number */n){}");
 
-    preserveJsDoc = false;
+    preserveTypeAnnotations = false;
     assertPrint("/** @type {foo} */\nvar bar;", "var bar");
   }
 
@@ -1974,26 +1983,14 @@ public class CodePrinterTest extends TestCase {
 
   public void testImports() {
     languageMode = LanguageMode.ECMASCRIPT6;
-    assertPrint(
-        "import x from 'foo'",
-        "import x from\"foo\"");
-    assertPrint(
-        "import x, {a as b} from 'foo'",
-        "import x,{a as b}from\"foo\"");
-    assertPrint(
-        "import {a as b, c as d} from 'foo'",
-        "import{a as b,c as d}from\"foo\"");
-    assertPrint(
-        "import x, {a} from 'foo'",
-        "import x,{a}from\"foo\"");
-    assertPrint(
-        "import {a, c} from 'foo'",
-        "import{a,c}from\"foo\"");
-  }
-
-  public void testModuleImports() {
-    languageMode = LanguageMode.ECMASCRIPT6;
-    assertPrint("module x from 'foo'", "module x from\"foo\"");
+    assertPrintSame("import x from\"foo\"");
+    assertPrintSame("import\"foo\"");
+    assertPrintSame("import x,{a as b}from\"foo\"");
+    assertPrintSame("import{a as b,c as d}from\"foo\"");
+    assertPrintSame("import x,{a}from\"foo\"");
+    assertPrintSame("import{a,c}from\"foo\"");
+    assertPrintSame("import x,*as f from\"foo\"");
+    assertPrintSame("import*as f from\"foo\"");
   }
 
   public void testExports() {
@@ -2009,31 +2006,15 @@ public class CodePrinterTest extends TestCase {
     assertPrint("export * from 'a.b.c'", "export*from\"a.b.c\"");
 
     // from
-    assertPrint(
-        "export { a } from 'a.b.c'",
-        "export{a}from\"a.b.c\"");
-    assertPrint(
-        "export { a as x } from 'a.b.c'",
-        "export{a as x}from\"a.b.c\"");
-
-    assertPrint(
-        "export { a,b } from 'a.b.c'",
-        "export{a,b}from\"a.b.c\"");
-    assertPrint(
-        "export { a as x, b as y } from 'a.b.c'",
-        "export{a as x,b as y}from\"a.b.c\"");
-
+    assertPrintSame("export{a}from\"a.b.c\"");
+    assertPrintSame("export{a as x}from\"a.b.c\"");
+    assertPrintSame("export{a,b}from\"a.b.c\"");
+    assertPrintSame("export{a as x,b as y}from\"a.b.c\"");
     assertPrintSame("export{a}");
-    assertPrint(
-        "export { a as x }",
-        "export{a as x}");
+    assertPrintSame("export{a as x}");
 
-    assertPrint(
-        "export { a,b }",
-        "export{a,b}");
-    assertPrint(
-        "export { a as x, b as y }",
-        "export{a as x,b as y}");
+    assertPrintSame("export{a,b}");
+    assertPrintSame("export{a as x,b as y}");
 
     // export default
     assertPrintSame("export default x");

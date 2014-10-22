@@ -32,6 +32,8 @@ var symbol;
  */
 function Symbol(description) {}
 
+/** @const {symbol} */
+Symbol.iterator;
 
 
 
@@ -221,76 +223,297 @@ Loader.prototype.instantiate;
 var System;
 
 
-
-
-// TODO(johnlenz): add externs for std:iteration, GeneratorFunction etc.
-// http://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorfunction
-
 /**
  * @interface
- * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-iterator-interface
+ * @template VALUE
+ */
+var Iterable;
+
+// TODO(johnlenz): remove this when the compiler understands "symbol" natively
+/**
+ * @return {Iterator.<VALUE>}
+ * @suppress {externsValidation}
+ */
+Iterable[Symbol.iterator] = function() {};
+
+
+
+// TODO(johnlenz): Iterator should be a templated record type.
+/**
+ * @interface
+ * @template VALUE
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol
  */
 var Iterator;
+
+/**
+ * @return {{value:VALUE, done:boolean}}
+ */
 Iterator.prototype.next;
 
+
+
+
 /**
- * @interface
+ * @constructor
  * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-generator-objects
- * @extends {Iterator}
+ * @implements {Iterator<VALUE>}
+ * @template VALUE
  */
 var Generator;
+
+/**
+ * @param {?=} value
+ * @return {{value:VALUE, done:boolean}}
+ */
 Generator.prototype.next;
+
+/**
+ * @param {VALUE} value
+ * @return {{value:VALUE, done:boolean}}
+ */
+Generator.prototype.return;
+
+/**
+ * @param {?} exception
+ * @return {{value:VALUE, done:boolean}}
+ */
 Generator.prototype.throw;
 
-/** @constructor */
+// TODO(johnlenz): cleanup the Iterator|
+
+/**
+ * @constructor
+ * @param {Iterable<Array<KEY|VALUE>>|Array<Array<KEY|VALUE>>} opt_iterable
+ * @implements Iterable.<Array.<KEY|VALUE>>
+ * @template KEY, VALUE
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
+ */
 function Map(opt_iterable) {}
+
+/** @return {void} */
 Map.prototype.clear;
+
+/**
+ * @param {KEY} key
+ * @return {boolean}
+ */
 Map.prototype.delete;
+
+/**
+ * @return {Iterator<Array<KEY|VALUE>>}
+ * @nosideeffects
+ */
 Map.prototype.entries;
+
+/**
+ * @param {function(this:THIS, VALUE, KEY, MAP):void} callback
+ * @param {THIS} thisArg
+ * @this {MAP}
+ * @template MAP,THIS
+ */
 Map.prototype.forEach;
+
+/**
+ * @param {KEY} key
+ * @return {VALUE}
+ * @nosideeffects
+ */
 Map.prototype.get;
+
+/**
+ * @param {KEY} key
+ * @return {boolean}
+ * @nosideeffects
+ */
 Map.prototype.has;
+
+/**
+ * @return {Iterator<KEY>}
+ */
 Map.prototype.keys;
+
+/**
+ * @param {KEY} key
+ * @param {VALUE} value
+ * @return {THIS}
+ * @this {THIS}
+ * @template THIS
+ */
 Map.prototype.set;
+
+/**
+ * @type {number}
+ * (readonly)
+ */
 Map.prototype.size;
+
+/**
+ * @return {Iterator<VALUE>}
+ * @nosideeffects
+ */
 Map.prototype.values;
 
-
-/** @constructor */
-function WeakMap(opt_iterable) {}
-WeakMap.prototype.clear;
-WeakMap.prototype.delete;
-WeakMap.prototype.get;
-WeakMap.prototype.has;
-WeakMap.prototype.set;
-
-/** @constructor */
-function Set(opt_iterable) {}
-Set.prototype.add;
-Set.prototype.clear;
-Set.prototype.delete;
-Set.prototype.entries;
-Set.prototype.forEach;
-Set.prototype.has;
-Set.prototype.keys;
-Set.prototype.size;
-Set.prototype.values;
-
-/** @constructor */
-function WeakSet(opt_iterable) {}
-WeakSet.prototype.add;
-WeakSet.prototype.clear;
-WeakSet.prototype.delete;
-WeakSet.prototype.has;
+/**
+ * @return {Iterator.<Array.<KEY|VALUE>>}
+ */
+Map.prototype[Symbol.iterator] = function() {};
 
 
 /**
- * @param {*} a
- * @param {*} b
- * @return {boolean}
- * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.is
+ * @constructor
+ * @param {Iterable<Array<KEY|VALUE>>|Array<Array<KEY|VALUE>>} opt_iterable
+ * @template KEY, VALUE
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
  */
-Object.is;
+function WeakMap(opt_iterable) {}
+
+/** @return {void} */
+WeakMap.prototype.clear;
+
+/**
+ * @param {KEY} key
+ * @return {boolean}
+ */
+WeakMap.prototype.delete;
+
+/**
+ * @param {KEY} key
+ * @return {VALUE}
+ * @nosideeffects
+ */
+WeakMap.prototype.get;
+
+/**
+ * @param {KEY} key
+ * @return {boolean}
+ * @nosideeffects
+ */
+WeakMap.prototype.has;
+
+/**
+ * @param {KEY} key
+ * @param {VALUE} value
+ * @return {THIS}
+ * @this {THIS}
+ * @template THIS
+ */
+WeakMap.prototype.set;
+
+
+
+/**
+ * @constructor
+ * @param {Iterable<VALUE>|Array<VALUE>=} opt_iterable
+ * @implements Iterable.<VALUE>
+ * @template VALUE
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+ */
+function Set(opt_iterable) {}
+
+/**
+ * @type {number}
+ */
+Set.prototype.size;
+
+/**
+ * @param {VALUE} value
+ * @return {THIS}
+ * @this {THIS}
+ * @template THIS
+ */
+Set.prototype.add;
+
+/**
+ * @return {void}
+ */
+Set.prototype.clear;
+
+/**
+ * @param {VALUE} value
+ * @return {boolean}
+ */
+Set.prototype.delete;
+
+/**
+ * @return {Iterator<Array<VALUE>>} Where each array is two entries value, value
+ * @nosideeffects
+ */
+Set.prototype.entries;
+
+/**
+ * @param {function(VALUE, VALUE, SET)} callback
+ * @param {THIS} thisArg
+ * @this {SET}
+ * @template SET,THIS
+ */
+Set.prototype.forEach;
+
+/**
+ * @param {VALUE} value
+ * @return {boolean}
+ * @nosideeffects
+ */
+Set.prototype.has;
+
+/**
+ * @type {number} (readonly)
+ */
+Set.prototype.size;
+
+/**
+ * @return {Iterator<VALUE>}
+ * @nosideeffects
+ */
+Set.prototype.keys;
+
+/**
+ * @return {Iterator<VALUE>}
+ * @nosideeffects
+ */
+Set.prototype.values;
+
+/**
+ * @return {Iterator.<VALUE>}
+ */
+Set.prototype[Symbol.iterator] = function() {};
+
+
+
+/**
+ * @constructor
+ * @param {Iterable<VALUE>|Array<VALUE>=} opt_iterable
+ * @template VALUE
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+ */
+function WeakSet(opt_iterable) {}
+
+/**
+ * @param {VALUE} value
+ * @return {THIS}
+ * @this {THIS}
+ * @template THIS
+ */
+WeakSet.prototype.add;
+
+/**
+ * @return {void}
+ */
+WeakSet.prototype.clear;
+
+/**
+ * @param {VALUE} value
+ * @return {boolean}
+ */
+WeakSet.prototype.delete;
+
+/**
+ * @param {VALUE} value
+ * @return {boolean}
+ * @nosideeffects
+ */
+WeakSet.prototype.has;
+
 
 
 /**
@@ -300,106 +523,6 @@ Object.is;
  * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.assign
  */
 Object.assign;
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.log10 = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.log2 = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.log1p = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.expm1 = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.cosh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.sinh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.tanh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.acosh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.asinh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.atanh = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.trunc = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.sign = function(value) {};
-
-/**
- * @param {number} value
- * @return {number}
- * @nosideeffects
- */
-Math.cbrt = function(value) {};
-
-/**
- * @param {number} value1
- * @param {...number} var_args
- * @return {number}
- * @nosideeffects
- * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-math.hypot
- */
-Math.hypot = function(value1, var_args) {};
 
 
 /** @const {number} */

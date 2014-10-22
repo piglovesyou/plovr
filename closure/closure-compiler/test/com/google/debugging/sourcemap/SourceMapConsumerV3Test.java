@@ -16,9 +16,10 @@
 
 package com.google.debugging.sourcemap;
 
-import junit.framework.TestCase;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
-import org.json.JSONArray;
+import junit.framework.TestCase;
 
 import java.util.Map;
 
@@ -46,6 +47,32 @@ public class SourceMapConsumerV3Test extends TestCase {
     assertEquals(1, sources.length);
     assertEquals(null, consumer.getSourceRoot());
     assertEquals("testcode", sources[0]);
+  }
+
+  public void testMap() throws Exception{
+    String sourceMap = ""
+        + "{"
+        + "  \"version\": 3,"
+        + "  \"file\": \"testcode.js\","
+        + "  \"sections\": ["
+        + "    {"
+        + "      \"map\": {"
+        + "         \"version\": 3,"
+        + "         \"mappings\": \"AAAAA,QAASA,UAAS,EAAG;\","
+        + "         \"sources\": [\"testcode.js\"],"
+        + "         \"names\": [\"foo\"]"
+        + "      },"
+        + "      \"offset\": {"
+        + "        \"line\": 1,"
+        + "        \"column\": 1"
+        + "      }"
+        + "    }"
+        + "  ]"
+        + "}";
+
+    SourceMapConsumerV3 consumer = new SourceMapConsumerV3();
+    consumer.parse(sourceMap);
+
   }
 
   public void testSourcesWithRoot() throws Exception{
@@ -89,8 +116,8 @@ public class SourceMapConsumerV3Test extends TestCase {
 
     assertEquals(2, exts.size());
     assertFalse(exts.containsKey("org_int"));
-    assertEquals(new Integer(2), exts.get("x_org_int"));
-    assertEquals(0, ((JSONArray) exts.get("x_org_array")).length());
+    assertEquals(2, ((JsonElement) exts.get("x_org_int")).getAsInt());
+    assertEquals(0, ((JsonArray) exts.get("x_org_array")).size());
   }
 
 }

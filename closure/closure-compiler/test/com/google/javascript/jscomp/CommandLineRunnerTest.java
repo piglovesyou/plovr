@@ -24,10 +24,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.javascript.jscomp.AbstractCommandLineRunner.FlagUsageException;
 import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
+import com.google.javascript.jscomp.SourceMap.LocationMapping;
 import com.google.javascript.rhino.Node;
 
 import junit.framework.TestCase;
@@ -580,9 +582,13 @@ public class CommandLineRunnerTest extends TestCase {
 
   public void testHelpFlag() {
     args.add("--help");
-    assertFalse(
-        createCommandLineRunner(
-            new String[] {"function f() {}"}).shouldRunCompiler());
+    CommandLineRunner runner =
+        createCommandLineRunner(new String[] {"function f() {}"});
+    assertFalse(runner.shouldRunCompiler());
+    assertFalse(runner.hasErrors());
+    String output = new String(outReader.toByteArray(), UTF_8);
+    assertTrue(output.contains(" --help "));
+    assertTrue(output.contains(" --version "));
   }
 
   public void testHoistedFunction1() {
@@ -942,6 +948,52 @@ public class CommandLineRunnerTest extends TestCase {
         lastCompiler.getOptions().sourceMapFormat);
   }
 
+  public void testSourceMapLocationsTranslations1() {
+    args.add("--js_output_file");
+    args.add("/path/to/out.js");
+    args.add("--create_source_map=%outname%.map");
+    args.add("--source_map_location_mapping=foo/|http://bar");
+    testSame("var x = 3;");
+
+    List<LocationMapping> mappings = lastCompiler.getOptions()
+        .sourceMapLocationMappings;
+    assertEquals(
+        ImmutableSet.of(new LocationMapping("foo/", "http://bar")).toString(),
+        ImmutableSet.copyOf(mappings).toString());
+  }
+
+  public void testSourceMapLocationsTranslations2() {
+    args.add("--js_output_file");
+    args.add("/path/to/out.js");
+    args.add("--create_source_map=%outname%.map");
+    args.add("--source_map_location_mapping=foo/|http://bar");
+    args.add("--source_map_location_mapping=xxx/|http://yyy");
+    testSame("var x = 3;");
+
+    List<LocationMapping> mappings = lastCompiler.getOptions()
+        .sourceMapLocationMappings;
+    assertEquals(
+        ImmutableSet.of(
+            new LocationMapping("foo/", "http://bar"),
+            new LocationMapping("xxx/", "http://yyy")).toString(),
+        ImmutableSet.copyOf(mappings).toString());
+  }
+
+  public void testSourceMapLocationsTranslations3() throws IOException {
+    // Prevents this from trying to load externs.zip
+    args.add("--use_only_custom_externs=true");
+
+    args.add("--js_output_file");
+    args.add("/path/to/out.js");
+    args.add("--create_source_map=%outname%.map");
+    args.add("--source_map_location_mapping=foo/");
+
+    CommandLineRunner runner = createCommandLineRunner(new String[0]);
+    assertFalse(runner.shouldRunCompiler());
+    assertTrue(new String(errReader.toByteArray()).contains(
+        "Bad value for --source_map_location_mapping"));
+  }
+
   public void testModuleWrapperBaseNameExpansion() throws Exception {
     useModules = ModulePattern.CHAIN;
     args.add("--module_wrapper=m0:%s // %basename%");
@@ -1023,9 +1075,10 @@ public class CommandLineRunnerTest extends TestCase {
 
   public void testVersionFlag() {
     args.add("--version");
-    assertFalse(
-        createCommandLineRunner(
-            new String[] {"function f() {}"}).shouldRunCompiler());
+    CommandLineRunner runner =
+        createCommandLineRunner(new String[] {"function f() {}"});
+    assertFalse(runner.shouldRunCompiler());
+    assertFalse(runner.hasErrors());
     assertEquals(
         0,
         new String(outReader.toByteArray(), UTF_8).indexOf(
@@ -1035,9 +1088,10 @@ public class CommandLineRunnerTest extends TestCase {
 
   public void testVersionFlag2() {
     lastArg = "--version";
-    assertFalse(
-        createCommandLineRunner(
-            new String[] {"function f() {}"}).shouldRunCompiler());
+    CommandLineRunner runner =
+        createCommandLineRunner(new String[] {"function f() {}"});
+    assertFalse(runner.shouldRunCompiler());
+    assertFalse(runner.hasErrors());
     assertEquals(
         0,
         new String(outReader.toByteArray(), UTF_8).indexOf(
@@ -1211,6 +1265,66 @@ public class CommandLineRunnerTest extends TestCase {
     assertEquals("", outReader.toString());
   }
 
+  /**
+   * closure requires mixed with cjs, raised in
+   * https://github.com/google/closure-compiler/pull/630
+   * https://gist.github.com/sayrer/c4c4ce0c1748573f863e
+   */
+  public void testProcessCJSWithClosureRequires() {
+    args.add("--process_common_js_modules");
+    args.add("--common_js_entry_module=app.js");
+    args.add("--manage_closure_dependencies");
+    setFilename(0, "base.js");
+    setFilename(1, "array.js");
+    setFilename(2, "Baz.js");
+    setFilename(3, "app.js");
+    test(new String[] {
+           "/** @provideGoog */\n" +
+           "/** @const */ var goog = goog || {};\n" +
+           "var COMPILED = false;\n" +
+           "goog.provide = function (arg) {};\n" +
+           "goog.require = function (arg) {};\n",
+
+           "goog.provide('goog.array');\n",
+
+           "goog.require('goog.array');\n" +
+           "function Baz() {}\n" +
+           "Baz.prototype = {\n" +
+           "  baz: function() {\n" +
+           "    return goog.array.last(['asdf','asd','baz']);\n" +
+           "  },\n" +
+           "  bar: function () {\n" +
+           "    return 4 + 4;\n" +
+           "  }\n" +
+           "}\n" +
+           "module.exports = Baz;",
+
+           "var Baz = require('./Baz');\n" +
+           "var baz = new Baz();\n" +
+           "console.log(baz.baz());\n" +
+           "console.log(baz.bar());\n"
+         },
+         new String[] {
+           "var goog=goog||{},COMPILED=!1;" +
+           "goog.provide=function(a){};goog.require=function(a){};",
+
+           "goog.array={};",
+
+           "function Baz$$module$Baz(){}" +
+           "Baz$$module$Baz.prototype={" +
+           "  baz:function(){return goog.array.last(['asdf','asd','baz'])}," +
+           "  bar:function(){return 8}" +
+           "};" +
+           "var module$Baz=Baz$$module$Baz;",
+
+           "var module$app={}," +
+           "    Baz$$module$app=module$Baz," +
+           "    baz$$module$app=new Baz$$module$app;" +
+           "console.log(baz$$module$app.baz());" +
+           "console.log(baz$$module$app.bar())"
+         });
+  }
+
   public void testFormattingSingleQuote() {
     testSame("var x = '';");
     assertEquals("var x=\"\";", lastCompiler.toSource());
@@ -1251,9 +1365,10 @@ public class CommandLineRunnerTest extends TestCase {
     // ensure that the compiler displays an error and exits.
     // See github issue 123
     args.add("--output_wrapper=output");
-    assertFalse(
-        createCommandLineRunner(
-            new String[] {"function f() {}"}).shouldRunCompiler());
+    CommandLineRunner runner =
+        createCommandLineRunner(new String[] {"function f() {}"});
+    assertFalse(runner.shouldRunCompiler());
+    assertTrue(runner.hasErrors());
   }
 
   /* Helper functions */
@@ -1371,7 +1486,10 @@ public class CommandLineRunnerTest extends TestCase {
 
   private Compiler compile(String[] original) {
     CommandLineRunner runner = createCommandLineRunner(original);
-    assertTrue(new String(errReader.toByteArray()), runner.shouldRunCompiler());
+    if (!runner.shouldRunCompiler()) {
+      assertTrue(runner.hasErrors());
+      fail(new String(errReader.toByteArray()));
+    }
     Supplier<List<SourceFile>> inputsSupplier = null;
     Supplier<List<JSModule>> modulesSupplier = null;
 
@@ -1436,6 +1554,8 @@ public class CommandLineRunnerTest extends TestCase {
     if (filenames.isEmpty()) {
       return "input" + i;
     }
-    return filenames.get(i);
+    String name = filenames.get(i);
+    Preconditions.checkState(name != null && !name.isEmpty());
+    return name;
   }
 }

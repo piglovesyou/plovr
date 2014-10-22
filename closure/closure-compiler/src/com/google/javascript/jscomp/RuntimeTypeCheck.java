@@ -147,8 +147,8 @@ class RuntimeTypeCheck implements CompilerPass {
         return nodeToInsertAfter;
       }
 
-      Node classNode = NodeUtil.newQualifiedNameNode(
-          compiler.getCodingConvention(), className);
+      Node classNode = NodeUtil.newQName(
+          compiler, className);
 
       Node marker = IR.string(
               interfaceType == null ?
@@ -371,11 +371,11 @@ class RuntimeTypeCheck implements CompilerPass {
       // Inject the custom log function.
       Node logOverride = IR.exprResult(
           IR.assign(
-              NodeUtil.newQualifiedNameNode(
-                  compiler.getCodingConvention(),
+              NodeUtil.newQName(
+                  compiler,
                   "$jscomp.typecheck.log"),
-              NodeUtil.newQualifiedNameNode(
-                  compiler.getCodingConvention(),
+              NodeUtil.newQName(
+                  compiler,
                   logFunction)));
       newNode.getParent().addChildAfter(logOverride, newNode);
       compiler.reportCodeChange();
@@ -383,7 +383,7 @@ class RuntimeTypeCheck implements CompilerPass {
   }
 
   private Node jsCode(String prop) {
-    return NodeUtil.newQualifiedNameNode(
-        compiler.getCodingConvention(), "$jscomp.typecheck." + prop);
+    return NodeUtil.newQName(
+        compiler, "$jscomp.typecheck." + prop);
   }
 }

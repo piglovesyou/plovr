@@ -97,25 +97,25 @@ class JsDocTokenStream {
           return JsDocToken.COMMA;
 
         case '>':
-          return JsDocToken.GT;
+          return JsDocToken.RIGHT_ANGLE;
 
         case '(':
-          return JsDocToken.LP;
+          return JsDocToken.LEFT_PAREN;
 
         case ')':
-          return JsDocToken.RP;
+          return JsDocToken.RIGHT_PAREN;
 
         case '{':
-          return JsDocToken.LC;
+          return JsDocToken.LEFT_CURLY;
 
         case '}':
-          return JsDocToken.RC;
+          return JsDocToken.RIGHT_CURLY;
 
         case '[':
-          return JsDocToken.LB;
+          return JsDocToken.LEFT_SQUARE;
 
         case ']':
-          return JsDocToken.RB;
+          return JsDocToken.RIGHT_SQUARE;
 
         case '?':
           return JsDocToken.QMARK;
@@ -133,10 +133,13 @@ class JsDocTokenStream {
           matchChar('|');
           return JsDocToken.PIPE;
 
+        case '<':
+          return JsDocToken.LEFT_ANGLE;
+
         case '.':
           c = getChar();
           if (c == '<') {
-            return JsDocToken.LT;
+            return JsDocToken.LEFT_ANGLE;
           } else {
             if (c == '.') {
               c = getChar();
@@ -233,7 +236,8 @@ class JsDocTokenStream {
 
   private String getStringFromBuffer() {
     tokenEnd = cursor;
-    return new String(stringBuffer, 0, stringBufferTop);
+    String s = new String(stringBuffer, 0, stringBufferTop);
+    return s.intern();
   }
 
   private void addToString(int c) {
@@ -279,6 +283,7 @@ class JsDocTokenStream {
       case '@':
       case '*':
       case ',':
+      case '<':
       case '>':
       case ':':
       case '(':

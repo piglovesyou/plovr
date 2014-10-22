@@ -25,6 +25,7 @@ import com.google.javascript.rhino.jstype.FunctionType;
 import com.google.javascript.rhino.jstype.JSType;
 import com.google.javascript.rhino.jstype.ObjectType;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 
 
@@ -36,6 +37,15 @@ import java.util.Deque;
 // TypedScopeCreatorTest. We should create a common test harness for
 // assertions about type information.
 public class InferJSDocInfoTest extends CompilerTestCase {
+
+  private static final String OBJECT_EXTERNS = ""
+        + "/**\n"
+        + " * Object.\n"
+        + " * @param {*=} x\n"
+        + " * @return {!Object}\n"
+        + " * @constructor\n"
+        + " */\n"
+        + "function Object(x) {};";
 
   private Scope globalScope;
 
@@ -86,11 +96,9 @@ public class InferJSDocInfoTest extends CompilerTestCase {
   }
 
   public void testNativeCtor() {
-    testSame(
-        "/** Object. \n * @param {*=} x \n * @constructor */ " +
-        "function Object(x) {};",
-        "var x = new Object();" +
-        "/** Another object. */ var y = new Object();", null);
+    testSame(OBJECT_EXTERNS,
+        "var x = new Object();"
+        + "/** Another object. */ var y = new Object();", null);
     assertEquals(
         "Object.",
         findGlobalNameType("x").getJSDocInfo().getBlockDescription());
@@ -103,14 +111,12 @@ public class InferJSDocInfoTest extends CompilerTestCase {
   }
 
   public void testStructuralFunctions() {
-    testSame(
-        "/** Object. \n * @param {*=} x \n * @constructor */ " +
-        "function Object(x) {};",
-        "/** Function. \n * @param {*} x */ " +
-        "function fn(x) {};" +
-        "var goog = {};" +
-        "/** Another object. \n * @type {Object} */ goog.x = new Object();" +
-        "/** Another function. \n * @param {number} x */ goog.y = fn;", null);
+    testSame(OBJECT_EXTERNS,
+        "/** Function. \n * @param {*} x */ "
+        + "function fn(x) {};"
+        + "var goog = {};"
+        + "/** Another object. \n * @type {Object} */ goog.x = new Object();"
+        + "/** Another function. \n * @param {number} x */ goog.y = fn;", null);
     assertEquals(
         "(Object|null)",
         globalScope.getVar("goog.x").getType().toString());
@@ -204,7 +210,7 @@ public class InferJSDocInfoTest extends CompilerTestCase {
 
   private JSType findNameType(String name, Scope scope) {
     Node root = scope.getRootNode();
-    Deque<Node> queue = Lists.newLinkedList();
+    Deque<Node> queue = new ArrayDeque<>();
     queue.push(root);
     while (!queue.isEmpty()) {
       Node current = queue.pop();

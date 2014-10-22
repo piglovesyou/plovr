@@ -708,6 +708,8 @@ public class AstValidator implements CompilerPass {
       validateObjectPattern(type, n);
     } else if (n.isDefaultValue()) {
       validateDefaultValue(type, n);
+    } else if (n.isComputedProp()) {
+      validateObjectPatternComputedPropKey(type, n);
     } else {
       violation("Invalid child for " + Token.name(type) + " node", n);
     }
@@ -722,6 +724,8 @@ public class AstValidator implements CompilerPass {
         validateExpression(c);
       } else if (c.isRest()) {
         validateRest(c);
+      } else if (c.isEmpty()) {
+        validateChildless(c);
       } else {
         // The members of the array pattern can be simple names,
         // or nested array/object patterns, e.g. "var [a,[b,c]]=[1,[2,3]];"
@@ -738,8 +742,7 @@ public class AstValidator implements CompilerPass {
       if (c == n.getLastChild() && NodeUtil.isNameDeclaration(n.getParent())) {
         validateExpression(c);
       } else if (c.isStringKey()) {
-        validateObjectLitStringKey(c);
-        validateChildCount(c, 0);
+        validateObjectPatternStringKey(type, c);
       } else {
         // Nested destructuring pattern.
         validateNameDeclarationChild(type, c);
@@ -1093,11 +1096,33 @@ public class AstValidator implements CompilerPass {
     }
   }
 
+  private void validateObjectPatternStringKey(int type, Node n) {
+    validateNodeType(Token.STRING_KEY, n);
+    validateObjectLiteralKeyName(n);
+    validateMinimumChildCount(n, 0);
+    validateMaximumChildCount(n, 1);
+
+    if (n.hasOneChild()) {
+      validateNameDeclarationChild(type, n.getFirstChild());
+    }
+  }
+
   private void validateObjectLitComputedPropKey(Node n) {
     validateNodeType(Token.COMPUTED_PROP, n);
     validateChildCount(n, Token.arity(Token.COMPUTED_PROP));
     validateExpression(n.getFirstChild());
     validateExpression(n.getLastChild());
+  }
+
+  private void validateObjectPatternComputedPropKey(int type, Node n) {
+    validateNodeType(Token.COMPUTED_PROP, n);
+    validateChildCount(n, Token.arity(Token.COMPUTED_PROP));
+    validateExpression(n.getFirstChild());
+    if (n.getLastChild().isDefaultValue()) {
+      validateDefaultValue(type, n.getLastChild());
+    } else {
+      validateExpression(n.getLastChild());
+    }
   }
 
   private void validateComputedPropClassMethod(Node n) {

@@ -21,6 +21,117 @@
  * @externs
  */
 
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.log10 = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.log2 = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.log1p = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.expm1 = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.cosh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.sinh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.tanh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.acosh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.asinh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.atanh = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.trunc = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.sign = function(value) {};
+
+/**
+ * @param {number} value
+ * @return {number}
+ * @nosideeffects
+ */
+Math.cbrt = function(value) {};
+
+/**
+ * @param {number} value1
+ * @param {...number} var_args
+ * @return {number}
+ * @nosideeffects
+ * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-math.hypot
+ */
+Math.hypot = function(value1, var_args) {};
+
+
+/**
+ * @param {*} a
+ * @param {*} b
+ * @return {boolean}
+ * @see http://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.is
+ */
+Object.is;
+
+
 /**
  * @see http://dev.w3.org/html5/postmsg/
  * @interface
@@ -584,9 +695,9 @@ var IThenable = function() {};
 
 
 /**
- * @param {(function(TYPE):
+ * @param {?(function(TYPE):
  *             (RESULT|IThenable.<RESULT>|Thenable))=} opt_onFulfilled
- * @param {(function(*): *)=} opt_onRejected
+ * @param {?(function(*): *)=} opt_onRejected
  * @return {!IThenable.<RESULT>}
  * @template RESULT
  */
@@ -615,31 +726,33 @@ Promise.resolve = function(opt_value) {};
 
 /**
  * @param {*=} opt_error
- * @return {!Promise}
+ * @return {!Promise.<?>}
  */
 Promise.reject = function(opt_error) {};
 
 
 /**
+ * @template T
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
- * @param {!Array} iterable
- * @return {!Promise}
+ * @param {!Array.<T>} iterable
+ * @return {!Promise.<!Array.<T>>}
  */
 Promise.all = function(iterable) {};
 
 
 /**
+ * @template T
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
- * @param {!Array} iterable
- * @return {!Promise}
+ * @param {!Array.<T>} iterable
+ * @return {!Promise.<T>}
  */
 Promise.race = function(iterable) {};
 
 
 /**
- * @param {(function(TYPE):
+ * @param {?(function(TYPE):
  *             (RESULT|IThenable.<RESULT>|Thenable))=} opt_onFulfilled
- * @param {(function(*): *)=} opt_onRejected
+ * @param {?(function(*): *)=} opt_onRejected
  * @return {!Promise.<RESULT>}
  * @template RESULT
  * @override
@@ -648,7 +761,8 @@ Promise.prototype.then = function(opt_onFulfilled, opt_onRejected) {};
 
 
 /**
- * @param {function(*): *} onRejected
- * @return {!Promise}
+ * @param {function(*): RESULT} onRejected
+ * @return {!Promise.<RESULT>}
+ * @template RESULT
  */
 Promise.prototype.catch = function(onRejected) {};
