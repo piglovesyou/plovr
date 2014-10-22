@@ -14,6 +14,7 @@
 
 /**
  * @fileoverview Provides utility methods to render soy template.
+ * @author chrishenry@google.com (Chris Henry)
  */
 
 goog.provide('goog.soy');
@@ -162,13 +163,13 @@ goog.soy.ensureTemplateOutputHtml_ = function(templateResult) {
         templateResult);
     var ContentKind = goog.soy.data.SanitizedContentKind;
     if (templateResult.contentKind === ContentKind.HTML) {
-      return goog.asserts.assertString(templateResult.content);
+      return goog.asserts.assertString(templateResult.getContent());
     }
     if (templateResult.contentKind === ContentKind.TEXT) {
       // Allow text to be rendered, as long as we escape it. Other content
       // kinds will fail, since we don't know what to do with them.
       // TODO(gboyer): Perhaps also include URI in this case.
-      return goog.string.htmlEscape(templateResult.content);
+      return goog.string.htmlEscape(templateResult.getContent());
     }
   }
 

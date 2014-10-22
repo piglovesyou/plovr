@@ -19,6 +19,7 @@
  *
  * This implementation ensures that you can use any string keys.
  *
+ * @author chrishenry@google.com (Chris Henry)
  */
 
 goog.provide('goog.labs.structs.Multimap');
@@ -240,7 +241,7 @@ goog.labs.structs.Multimap.prototype.containsKey = function(key) {
 goog.labs.structs.Multimap.prototype.containsValue = function(value) {
   return goog.array.some(this.map_.getValues(),
       function(values) {
-        return goog.array.some(/** @type {Array} */ (values), function(v) {
+        return goog.array.some(/** @type {Array.<?>} */ (values), function(v) {
           return goog.labs.object.is(v, value);
         });
       });
@@ -264,7 +265,7 @@ goog.labs.structs.Multimap.prototype.getValues = function() {
 
 
 /**
- * @return {!Array.<!Array>} An array of entries. Each entry is of the
+ * @return {!Array.<!Array.<?>>} An array of entries. Each entry is of the
  *     form [key, value].
  */
 goog.labs.structs.Multimap.prototype.getEntries = function() {

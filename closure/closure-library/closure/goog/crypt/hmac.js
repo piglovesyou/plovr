@@ -19,6 +19,7 @@
  *   var hmac = new goog.crypt.Hmac(new goog.crypt.sha1(), key, 64);
  *   var digest = hmac.getHmac(bytes);
  *
+ * @author benyu@google.com (Jige Yu) - port to closure
  */
 
 
@@ -149,7 +150,7 @@ goog.crypt.Hmac.prototype.digest = function() {
 /**
  * Calculates an HMAC for a given message.
  *
- * @param {Array.<number>} message  An array of integers in {0, 255}.
+ * @param {Array.<number>|Uint8Array|string} message  Data to Hmac.
  * @return {!Array.<number>} the digest of the given message.
  */
 goog.crypt.Hmac.prototype.getHmac = function(message) {

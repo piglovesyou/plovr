@@ -16,7 +16,6 @@
  * @fileoverview Detects images dragged and dropped on to the window.
  *
  * @author robbyw@google.com (Robby Walker)
- * @author wcrosby@google.com (Wayne Crosby)
  */
 
 goog.provide('goog.ui.DragDropDetector');
@@ -417,7 +416,6 @@ goog.ui.DragDropDetector.prototype.switchToIframe_ = function(e) {
   // This is only called on IE.
   if (this.isCoveringScreen_) {
     goog.style.setElementShown(this.textInput_, false);
-    this.isShowingInput_ = false;
   }
 };
 

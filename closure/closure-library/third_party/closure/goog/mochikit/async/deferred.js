@@ -17,6 +17,8 @@
  *
  * Based on the Dojo code which in turn is based on the MochiKit code.
  *
+ * @author arv@google.com (Erik Arvidsson)
+ * @author brenneman@google.com (Shawn Brenneman)
  */
 
 goog.provide('goog.async.Deferred');
@@ -446,6 +448,25 @@ goog.async.Deferred.prototype.addErrback = function(eb, opt_scope) {
  */
 goog.async.Deferred.prototype.addBoth = function(f, opt_scope) {
   return this.addCallbacks(f, f, opt_scope);
+};
+
+
+/**
+ * Like addBoth, but propagates uncaught exceptions in the errback.
+ *
+ * @param {!function(this:T,?):?} f The function to be called on any result.
+ * @param {T=} opt_scope An optional scope to call the function in.
+ * @return {!goog.async.Deferred.<VALUE>} This Deferred.
+ * @template T
+ */
+goog.async.Deferred.prototype.addFinally = function (f, opt_scope) {
+  return this.addCallbacks(f, function (err) {
+    var result = f.call(this, err)
+    if (!goog.isDef(result)) {
+      throw err
+    }
+    return result
+  }, opt_scope)
 };
 
 

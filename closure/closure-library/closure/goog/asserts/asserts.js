@@ -31,6 +31,7 @@
  * The compiler will leave in foo() (because its return value is used),
  * but it will remove bar() because it assumes it does not have side-effects.
  *
+ * @author agrieve@google.com (Andrew Grieve)
  */
 
 goog.provide('goog.asserts');
@@ -140,7 +141,7 @@ goog.asserts.setErrorHandler = function(errorHandler) {
  * @param {T} condition The condition to check.
  * @param {string=} opt_message Error message in case of failure.
  * @param {...*} var_args The items to substitute into the failure message.
- * @return {T} The value of the condition.
+ * @return {!T} The value of the condition.
  * @throws {goog.asserts.AssertionError} When the condition evaluates to false.
  */
 goog.asserts.assert = function(condition, opt_message, var_args) {
@@ -257,7 +258,7 @@ goog.asserts.assertObject = function(value, opt_message, var_args) {
  * @param {*} value The value to check.
  * @param {string=} opt_message Error message in case of failure.
  * @param {...*} var_args The items to substitute into the failure message.
- * @return {!Array} The value, guaranteed to be a non-null array.
+ * @return {!Array.<?>} The value, guaranteed to be a non-null array.
  * @throws {goog.asserts.AssertionError} When the value is not an array.
  */
 goog.asserts.assertArray = function(value, opt_message, var_args) {
@@ -266,7 +267,7 @@ goog.asserts.assertArray = function(value, opt_message, var_args) {
         [goog.typeOf(value), value], opt_message,
         Array.prototype.slice.call(arguments, 2));
   }
-  return /** @type {!Array} */ (value);
+  return /** @type {!Array.<?>} */ (value);
 };
 
 

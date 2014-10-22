@@ -271,18 +271,16 @@ goog.html.SafeHtml.VALID_NAMES_IN_TAG_ = /^[a-zA-Z0-9-]+$/;
 /**
  * Set of attributes containing URL as defined at
  * http://www.w3.org/TR/html5/index.html#attributes-1.
- * @const
- * @private
+ * @private @const {Object.<string,boolean>}
  */
 goog.html.SafeHtml.URL_ATTRIBUTES_ = goog.object.createSet('action', 'cite',
     'data', 'formaction', 'href', 'manifest', 'poster', 'src');
 
 
-// TODO(user): Perhaps add <template> used by Polymer?
+// TODO(jakubvrana): Perhaps add <template> used by Polymer?
 /**
  * Set of tag names that are too dangerous.
- * @const
- * @private
+ * @private @const {Object.<string,boolean>}
  */
 goog.html.SafeHtml.NOT_ALLOWED_TAG_NAMES_ = goog.object.createSet('link',
     'script', 'style');
@@ -362,7 +360,7 @@ goog.html.SafeHtml.create = function(tagName, opt_attributes, opt_content) {
       } else if (name.toLowerCase() == 'style') {
         value = goog.html.SafeHtml.getStyleValue_(value);
       } else if (/^on/i.test(name)) {
-        // TODO(user): Disallow more attributes with a special meaning.
+        // TODO(jakubvrana): Disallow more attributes with a special meaning.
         throw Error('Attribute "' + name +
             '" requires goog.string.Const value, "' + value + '" given.');
       } else if (value instanceof goog.html.SafeUrl) {

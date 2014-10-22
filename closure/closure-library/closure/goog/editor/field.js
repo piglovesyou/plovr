@@ -18,6 +18,7 @@
  * iframe to contain the editable area, never inherits the style of the
  * surrounding page, and is always a fixed height.
  *
+ * @author nicksantos@google.com (Nick Santos)
  * @see ../demos/editor/editor.html
  * @see ../demos/editor/field_basic.html
  */
@@ -117,7 +118,7 @@ goog.editor.Field = function(id, opt_doc) {
   /**
    * Plugins registered on this field, indexed by the goog.editor.Plugin.Op
    * that they support.
-   * @type {Object.<Array>}
+   * @type {Object.<Array.<goog.editor.Plugin>>}
    * @private
    */
   this.indexedPlugins_ = {};
@@ -1116,8 +1117,7 @@ goog.editor.Field.prototype.handleBeforeChangeKeyEvent_ = function(e) {
 
 /**
  * Keycodes that result in a selectionchange event (e.g. the cursor moving).
- * @enum {number}
- * @private
+ * @private {!Object.<number, number>}
  */
 goog.editor.Field.SELECTION_CHANGE_KEYCODES_ = {
   8: 1,  // backspace

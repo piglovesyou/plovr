@@ -18,7 +18,6 @@
  * in [0, 255].
  *
  * @author doughtie@google.com (Gavin Doughtie)
- * @author fschneider@google.com (Fritz Schneider)
  */
 
 goog.provide('goog.crypt.base64');
@@ -204,7 +203,7 @@ goog.crypt.base64.decodeString = function(input, opt_webSafe) {
  *
  * @param {string} input Input to decode.
  * @param {boolean=} opt_webSafe True if we should use the web-safe alphabet.
- * @return {!Array} bytes representing the decoded value.
+ * @return {!Array.<number>} bytes representing the decoded value.
  */
 goog.crypt.base64.decodeStringToByteArray = function(input, opt_webSafe) {
   goog.crypt.base64.init_();
@@ -274,6 +273,14 @@ goog.crypt.base64.init_ = function() {
           goog.crypt.base64.ENCODED_VALS_WEBSAFE.charAt(i);
       goog.crypt.base64.charToByteMapWebSafe_[
           goog.crypt.base64.byteToCharMapWebSafe_[i]] = i;
+
+      // Be forgiving when decoding and correctly decode both encodings.
+      if (i >= goog.crypt.base64.ENCODED_VALS_BASE.length) {
+        goog.crypt.base64.charToByteMap_[
+            goog.crypt.base64.ENCODED_VALS_WEBSAFE.charAt(i)] = i;
+        goog.crypt.base64.charToByteMapWebSafe_[
+            goog.crypt.base64.ENCODED_VALS.charAt(i)] = i;
+      }
     }
   }
 };

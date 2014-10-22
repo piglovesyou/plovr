@@ -41,6 +41,7 @@ goog.require('goog.ui.Component');
 goog.require('goog.ui.IdGenerator');
 goog.require('goog.ui.Menu');
 goog.require('goog.ui.MenuButtonRenderer');
+goog.require('goog.ui.MenuItem');
 goog.require('goog.ui.MenuRenderer');
 goog.require('goog.ui.registry');
 goog.require('goog.userAgent');
@@ -57,7 +58,7 @@ goog.require('goog.userAgent.product');
  * @param {goog.ui.Menu=} opt_menu Menu to render under the button when clicked.
  * @param {goog.ui.ButtonRenderer=} opt_renderer Renderer used to render or
  *     decorate the menu button; defaults to {@link goog.ui.MenuButtonRenderer}.
- * @param {goog.dom.DomHelper=} opt_domHelper Optional DOM hepler, used for
+ * @param {goog.dom.DomHelper=} opt_domHelper Optional DOM helper, used for
  *     document interaction.
  * @param {!goog.ui.MenuRenderer=} opt_menuRenderer Renderer used to render or
  *     decorate the menu; defaults to {@link goog.ui.MenuRenderer}.
@@ -95,6 +96,14 @@ goog.ui.MenuButton = function(opt_content, opt_menu, opt_renderer,
     // before the menu button click can be processed.
     this.setFocusablePopupMenu(true);
   }
+
+  /**
+   * Whether the enter or space key should close the menu, if it is already
+   * open. This should be true for accessibility reasons, but is provided as an
+   * option for backward compatibility.
+   * @private {boolean}
+   */
+  this.closeOnEnterOrSpace_ = true;
 
   /** @private {!goog.ui.MenuRenderer} */
   this.menuRenderer_ = opt_menuRenderer || goog.ui.MenuRenderer.getInstance();
@@ -180,6 +189,16 @@ goog.ui.MenuButton.prototype.originalSize_;
  * @private
  */
 goog.ui.MenuButton.prototype.renderMenuAsSibling_ = false;
+
+
+/**
+ * Whether to select the first item in the menu when it is opened using
+ * enter or space. By default, the first item is selected only when
+ * opened by a key up or down event. When this is on, the first item will
+ * be selected due to any of the four events.
+ * @private
+ */
+goog.ui.MenuButton.prototype.selectFirstOnEnterOrSpace_ = false;
 
 
 /**
@@ -329,8 +348,11 @@ goog.ui.MenuButton.prototype.handleKeyEventInternal = function(e) {
 
   if (this.menu_ && this.menu_.isVisible()) {
     // Menu is open.
+    var isEnterOrSpace = e.keyCode == goog.events.KeyCodes.ENTER ||
+        e.keyCode == goog.events.KeyCodes.SPACE;
     var handledByMenu = this.menu_.handleKeyEvent(e);
-    if (e.keyCode == goog.events.KeyCodes.ESC) {
+    if (e.keyCode == goog.events.KeyCodes.ESC ||
+        isEnterOrSpace && this.closeOnEnterOrSpace_) {
       // Dismiss the menu.
       this.setOpen(false);
       return true;
@@ -483,6 +505,29 @@ goog.ui.MenuButton.prototype.setPositionElement = function(
  */
 goog.ui.MenuButton.prototype.setMenuMargin = function(margin) {
   this.menuMargin_ = margin;
+};
+
+
+/**
+ * Sets whether the enter or space key should close the menu, if it is already
+ * open. By default, only the ESC key will close an open menu.
+ * @param {boolean} close Whether pressing Enter or Space when the button has
+ *     focus will close the menu if it is already open.
+ */
+goog.ui.MenuButton.prototype.setCloseOnEnterOrSpace = function(close) {
+  this.closeOnEnterOrSpace_ = close;
+};
+
+
+/**
+ * Sets whether to select the first item in the menu when it is opened using
+ * enter or space. By default, the first item is selected only when
+ * opened by a key up or down event. When this is on, the first item will
+ * be selected due to any of the four events.
+ * @param {boolean} select
+ */
+goog.ui.MenuButton.prototype.setSelectFirstOnEnterOrSpace = function(select) {
+  this.selectFirstOnEnterOrSpace_ = select;
 };
 
 
@@ -738,9 +783,16 @@ goog.ui.MenuButton.prototype.setOpen = function(open, opt_e) {
 
       // As per aria spec, highlight the first element in the menu when
       // keyboarding up or down. Thus, the first menu item will be announced
-      // for screen reader users.
-      var focus = !!opt_e && (opt_e.keyCode == goog.events.KeyCodes.DOWN ||
-          opt_e.keyCode == goog.events.KeyCodes.UP);
+      // for screen reader users. If selectFirstOnEnterOrSpace is set, do this
+      // for enter or space as well.
+      var isEnterOrSpace = !!opt_e &&
+          (opt_e.keyCode == goog.events.KeyCodes.ENTER ||
+           opt_e.keyCode == goog.events.KeyCodes.SPACE);
+      var isUpOrDown = !!opt_e &&
+          (opt_e.keyCode == goog.events.KeyCodes.DOWN ||
+           opt_e.keyCode == goog.events.KeyCodes.UP);
+      var focus = isUpOrDown ||
+          (isEnterOrSpace && this.selectFirstOnEnterOrSpace_);
       this.menu_.setHighlightedIndex(focus ? 0 : -1);
     } else {
       this.setActive(false);
@@ -773,6 +825,12 @@ goog.ui.MenuButton.prototype.setOpen = function(open, opt_e) {
     if (!this.isDisposed()) {
       this.attachPopupListeners_(open);
     }
+  }
+  if (this.menu_ && this.menu_.getElement()) {
+    // Remove the aria-hidden state on the menu element so that it won't be
+    // hidden to screen readers if it's inside a dialog (see b/17610491).
+    goog.a11y.aria.removeState(
+        this.menu_.getElementStrict(), goog.a11y.aria.State.HIDDEN);
   }
 };
 
@@ -855,6 +913,8 @@ goog.ui.MenuButton.prototype.attachMenuEventListeners_ = function(menu,
   // Handle events dispatched by menu items.
   method.call(handler, menu, goog.ui.Component.EventType.ACTION,
       this.handleMenuAction);
+  method.call(handler, menu, goog.ui.Component.EventType.CLOSE,
+      this.handleCloseItem);
   method.call(handler, menu, goog.ui.Component.EventType.HIGHLIGHT,
       this.handleHighlightItem);
   method.call(handler, menu, goog.ui.Component.EventType.UNHIGHLIGHT,
@@ -883,27 +943,9 @@ goog.ui.MenuButton.prototype.attachKeyDownEventListener_ = function(attach) {
  * @param {goog.events.Event} e Highlight event to handle.
  */
 goog.ui.MenuButton.prototype.handleHighlightItem = function(e) {
-  var element = this.getElement();
-  goog.asserts.assert(element, 'The menu button DOM element cannot be null.');
-
   var targetEl = e.target.getElement();
   if (targetEl) {
-    // If target element has an activedescendant, then set this control's
-    // activedescendant to that, otherwise set it to the target element. This is
-    // a workaround for some screen readers which do not handle
-    // aria-activedescendant redirection properly.
-    var targetActiveDescendant = goog.a11y.aria.getActiveDescendant(targetEl);
-    var activeDescendant = targetActiveDescendant || targetEl;
-
-    if (!activeDescendant.id) {
-      // Create an id if there isn't one already.
-      var idGenerator = goog.ui.IdGenerator.getInstance();
-      activeDescendant.id = idGenerator.getNextUniqueId();
-    }
-
-    goog.a11y.aria.setActiveDescendant(element, activeDescendant);
-    goog.a11y.aria.setState(
-        element, goog.a11y.aria.State.OWNS, activeDescendant.id);
+    this.setAriaActiveDescendant_(targetEl);
   }
 };
 
@@ -936,6 +978,53 @@ goog.ui.MenuButton.prototype.handleUnHighlightItem = function(e) {
     goog.a11y.aria.setState(element,
         goog.a11y.aria.State.OWNS, '');
   }
+};
+
+
+/**
+ * Handles {@code CLOSE} events dispatched by the associated menu.
+ * @param {goog.events.Event} e Close event to handle.
+ */
+goog.ui.MenuButton.prototype.handleCloseItem = function(e) {
+  // When a submenu is closed by pressing left arrow, no highlight event is
+  // dispatched because the newly focused item was already highlighted, so this
+  // scenario is handled by listening for the submenu close event instead.
+  if (this.isOpen() && e.target instanceof goog.ui.MenuItem) {
+    var menuItem = /** @type {!goog.ui.MenuItem} */ (e.target);
+    var menuItemEl = menuItem.getElement();
+    if (menuItem.isVisible() && menuItem.isHighlighted() &&
+        menuItemEl != null) {
+      this.setAriaActiveDescendant_(menuItemEl);
+    }
+  }
+};
+
+
+/**
+ * Updates the aria-activedescendant attribute to the given target element.
+ * @param {!Element} targetEl The target element.
+ * @private
+ */
+goog.ui.MenuButton.prototype.setAriaActiveDescendant_ = function(targetEl) {
+  var element = this.getElement();
+  goog.asserts.assert(element, 'The menu button DOM element cannot be null.');
+
+  // If target element has an activedescendant, then set this control's
+  // activedescendant to that, otherwise set it to the target element. This is
+  // a workaround for some screen readers which do not handle
+  // aria-activedescendant redirection properly.
+  var targetActiveDescendant = goog.a11y.aria.getActiveDescendant(targetEl);
+  var activeDescendant = targetActiveDescendant || targetEl;
+
+  if (!activeDescendant.id) {
+    // Create an id if there isn't one already.
+    var idGenerator = goog.ui.IdGenerator.getInstance();
+    activeDescendant.id = idGenerator.getNextUniqueId();
+  }
+
+  goog.a11y.aria.setActiveDescendant(element, activeDescendant);
+  goog.a11y.aria.setState(
+      element, goog.a11y.aria.State.OWNS, activeDescendant.id);
 };
 
 

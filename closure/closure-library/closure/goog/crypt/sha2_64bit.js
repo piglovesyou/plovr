@@ -21,6 +21,7 @@
  * This code borrows heavily from the 32-bit SHA2 implementation written by
  * Yue Zhang (zysxqn@).
  *
+ * @author fy@google.com (Frank Yellin)
  */
 
 goog.provide('goog.crypt.Sha2_64bit');
@@ -55,7 +56,7 @@ goog.crypt.Sha2_64bit = function(numHashBlocks, initHashBlocks) {
   /**
    * A chunk holding the currently processed message bytes. Once the chunk has
    * {@code this.blocksize} bytes, we feed it into [@code computeChunk_}.
-   * @private {!Uint8Array|Array}
+   * @private {!Uint8Array|Array.<number>}
    */
   this.chunk_ = goog.isDef(goog.global.Uint8Array) ?
       new Uint8Array(goog.crypt.Sha2_64bit.BLOCK_SIZE_) :

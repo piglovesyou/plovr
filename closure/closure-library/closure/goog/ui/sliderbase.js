@@ -37,7 +37,6 @@
  * - getCssClass
  *
  * @author arv@google.com (Erik Arvidsson)
- * @author reto@google.com (Reto Strobl)
  */
 
 goog.provide('goog.ui.SliderBase');
@@ -157,6 +156,22 @@ goog.ui.SliderBase.Orientation = {
  */
 goog.ui.SliderBase.prototype.orientation_ =
     goog.ui.SliderBase.Orientation.HORIZONTAL;
+
+
+/** @private {goog.fx.AnimationParallelQueue} */
+goog.ui.SliderBase.prototype.currentAnimation_;
+
+
+/** @private {!goog.Timer} */
+goog.ui.SliderBase.prototype.incTimer_;
+
+
+/** @private {boolean} */
+goog.ui.SliderBase.prototype.incrementing_;
+
+
+/** @private {number} */
+goog.ui.SliderBase.prototype.lastMousePosition_;
 
 
 /**
