@@ -1,6 +1,6 @@
 {
   "name" : "obvious-closure-library",
-  "version" : "20140718.1.3",
+  "version" : "20141022.0.0",
   "description" : "Fork of closure-library that allows installation via NPM.",
   "keywords" : ["javascript", "library", "google", "closure"],
   "repository" : {
