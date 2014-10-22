@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
-import com.google.inject.Inject;
 import com.google.template.soy.base.internal.BaseUtils;
 
 import java.io.File;
@@ -28,6 +27,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.regex.Pattern;
 
+import javax.inject.Inject;
 
 /**
  * Handler for writing {@code SoyMsgBundle}s to file format and for creating {@code SoyMsgBundle}s
@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
  * <p> Uses a {@code SoyMsgPlugin} to do the actual generation of the output data and the actual
  * parsing of the input data. The {@code SoyMsgPlugin} implements the specific message file format.
  *
- * @author Kai Huang
  */
 public class SoyMsgBundleHandler {
 

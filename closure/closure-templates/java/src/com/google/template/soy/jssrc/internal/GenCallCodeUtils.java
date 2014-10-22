@@ -18,7 +18,6 @@ package com.google.template.soy.jssrc.internal;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import com.google.template.soy.exprtree.ExprRootNode;
 import com.google.template.soy.jssrc.SoyJsSrcOptions;
 import com.google.template.soy.jssrc.internal.GenJsExprsVisitor.GenJsExprsVisitorFactory;
@@ -37,12 +36,11 @@ import java.util.Deque;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-
+import javax.inject.Inject;
 
 /**
  * Utilities for generating JS code for calls.
  *
- * @author Kai Huang
  */
 class GenCallCodeUtils {
 

@@ -17,7 +17,6 @@
 package com.google.template.soy.basicdirectives;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.template.soy.data.SanitizedContent;
 import com.google.template.soy.data.SanitizedContent.ContentKind;
@@ -35,13 +34,12 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-
+import javax.inject.Inject;
 
 /**
  * A directive that inserts word breaks as necessary.
  * It takes a single argument : an integer specifying the max number of characters between breaks.
  *
- * @author Kai Huang
  */
 @Singleton
 @SoyPurePrintDirective

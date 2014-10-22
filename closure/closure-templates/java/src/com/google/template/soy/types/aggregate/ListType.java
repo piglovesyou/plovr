@@ -16,11 +16,12 @@
 
 package com.google.template.soy.types.aggregate;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.template.soy.data.SoyList;
 import com.google.template.soy.data.SoyValue;
 import com.google.template.soy.types.SoyType;
+
+import java.util.Objects;
 
 /**
  * Represents the type of a list, a sequential random-access container keyed
@@ -28,7 +29,6 @@ import com.google.template.soy.types.SoyType;
  *
  * <p> Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Talin
  */
 public class ListType implements SoyType {
 
@@ -85,6 +85,6 @@ public class ListType implements SoyType {
 
 
   @Override public int hashCode() {
-    return Objects.hashCode(this.getClass(), elementType);
+    return Objects.hash(this.getClass(), elementType);
   }
 }

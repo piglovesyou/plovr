@@ -46,6 +46,7 @@ import com.google.template.soy.sharedpasses.render.RenderVisitor;
 import com.google.template.soy.soytree.SoyFileSetNode;
 import com.google.template.soy.soytree.TemplateNode;
 import com.google.template.soy.soytree.TemplateRegistry;
+import com.google.template.soy.soytree.Visibility;
 import com.google.template.soy.tofu.SoyTofu;
 import com.google.template.soy.tofu.SoyTofuException;
 
@@ -61,7 +62,6 @@ import javax.annotation.Nullable;
  *
  * <p> Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public class BaseTofu implements SoyTofu {
 
@@ -353,6 +353,8 @@ public class BaseTofu implements SoyTofu {
     TemplateNode template = templateRegistry.getBasicTemplate(templateName);
     if (template == null) {
       throw new SoyTofuException("Attempting to render undefined template '" + templateName + "'.");
+    } else if (template.getVisibility() == Visibility.PRIVATE) {
+      throw new SoyTofuException("Attempting to render private template '" + templateName + "'.");
     }
 
     if (data == null) {
@@ -472,7 +474,7 @@ public class BaseTofu implements SoyTofu {
       return sb.toString();
     }
 
-    @Override public void render(Appendable out) {
+    @Override public SanitizedContent.ContentKind render(Appendable out) {
       TemplateNode template = baseTofu.renderMain(
           out, templateName, data, ijData, activeDelPackageNames, msgBundle, idRenamingMap,
           cssRenamingMap, doAddToCache);
@@ -483,6 +485,7 @@ public class BaseTofu implements SoyTofu {
         // place where HTML was implicitly expected.
         enforceContentKind(template);
       }
+      return template.getContentKind();
     }
 
     @Override public SanitizedContent renderStrict() {

@@ -308,9 +308,9 @@
 <dd>
 <div class="block">Adds a data value.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#add(com.google.common.io.InputSupplier, java.lang.String)">add(InputSupplier&lt;? extends Reader&gt;, String)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#add(com.google.common.io.CharSource, java.lang.String)">add(CharSource, String)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
 <dd>
-<div class="block">Adds an input Soy file, given an <code>InputSupplier</code> for the file content, as well as the
+<div class="block">Adds an input Soy file, given a <code>CharSource</code> for the file content, as well as the
  desired file path for messages.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#add(java.io.File)">add(File)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
@@ -466,9 +466,9 @@
 <dd>
 <div class="block">Adds an input Soy file that supports checking for modifications, given a <code>File</code>.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#addWithKind(com.google.common.io.InputSupplier, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">addWithKind(InputSupplier&lt;? extends Reader&gt;, SoyFileKind, String)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#addWithKind(com.google.common.io.CharSource, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">addWithKind(CharSource, SoyFileKind, String)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
 <dd>
-<div class="block">Adds an input Soy file, given an <code>InputSupplier</code> for the file content, as well as the
+<div class="block">Adds an input Soy file, given a <code>CharSource</code> for the file content, as well as the
  desired file path for messages.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/SoyFileSet.Builder.html#addWithKind(java.io.File, com.google.template.soy.base.internal.SoyFileKind)">addWithKind(File, SoyFileKind)</a></span> - Method in class com.google.template.soy.<a href="./com/google/template/soy/SoyFileSet.Builder.html" title="class in com.google.template.soy">SoyFileSet.Builder</a></dt>
@@ -1285,6 +1285,10 @@
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/parsepasses/CheckCallsVisitor.html#CheckCallsVisitor()">CheckCallsVisitor()</a></span> - Constructor for class com.google.template.soy.parsepasses.<a href="./com/google/template/soy/parsepasses/CheckCallsVisitor.html" title="class in com.google.template.soy.parsepasses">CheckCallsVisitor</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="./com/google/template/soy/conformance/CheckConformance.html" title="interface in com.google.template.soy.conformance"><span class="strong">CheckConformance</span></a> - Interface in <a href="./com/google/template/soy/conformance/package-summary.html">com.google.template.soy.conformance</a></dt>
+<dd>
+<div class="block">Interface for collecting Soy conformance violations.</div>
+</dd>
 <dt><a href="./com/google/template/soy/parsepasses/CheckDelegatesVisitor.html" title="class in com.google.template.soy.parsepasses"><span class="strong">CheckDelegatesVisitor</span></a> - Class in <a href="./com/google/template/soy/parsepasses/package-summary.html">com.google.template.soy.parsepasses</a></dt>
 <dd>
 <div class="block">Checks various rules regarding the use of delegates (including delegate packages, delegate
@@ -1321,6 +1325,12 @@
  keys referenced in the template.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html#CheckSoyDocVisitor(com.google.template.soy.basetree.SyntaxVersion)">CheckSoyDocVisitor(SyntaxVersion)</a></span> - Constructor for class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckSoyDocVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses"><span class="strong">CheckTemplateVisibility</span></a> - Class in <a href="./com/google/template/soy/sharedpasses/package-summary.html">com.google.template.soy.sharedpasses</a></dt>
+<dd>
+<div class="block">Visitor for checking the visibility of a template.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#CheckTemplateVisibility()">CheckTemplateVisibility()</a></span> - Constructor for class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/shared/restricted/Sanitizers.html#cleanHtml(com.google.template.soy.data.SoyValue)">cleanHtml(SoyValue)</a></span> - Static method in class com.google.template.soy.shared.restricted.<a href="./com/google/template/soy/shared/restricted/Sanitizers.html" title="class in com.google.template.soy.shared.restricted">Sanitizers</a></dt>
 <dd>
@@ -1669,6 +1679,10 @@
 <dd>
 <div class="block">RegularExpression Id.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soyparse/TemplateParserConstants.html#CMD_NAME_INJECTED_PARAM_DECL">CMD_NAME_INJECTED_PARAM_DECL</a></span> - Static variable in interface com.google.template.soy.soyparse.<a href="./com/google/template/soy/soyparse/TemplateParserConstants.html" title="interface in com.google.template.soy.soyparse">TemplateParserConstants</a></dt>
+<dd>
+<div class="block">RegularExpression Id.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soyparse/TemplateParserConstants.html#CMD_NAME_LB">CMD_NAME_LB</a></span> - Static variable in interface com.google.template.soy.soyparse.<a href="./com/google/template/soy/soyparse/TemplateParserConstants.html" title="interface in com.google.template.soy.soyparse">TemplateParserConstants</a></dt>
 <dd>
 <div class="block">RegularExpression Id.</div>
@@ -1850,6 +1864,8 @@
 <dd>
 <div class="block">Plugin package of functions for bidi (bidirectional text).</div>
 </dd>
+<dt><a href="./com/google/template/soy/conformance/package-summary.html">com.google.template.soy.conformance</a> - package com.google.template.soy.conformance</dt>
+<dd>&nbsp;</dd>
 <dt><a href="./com/google/template/soy/coredirectives/package-summary.html">com.google.template.soy.coredirectives</a> - package com.google.template.soy.coredirectives</dt>
 <dd>
 <div class="block">Plugin package for core print directives.</div>
@@ -2279,9 +2295,9 @@
  compatible with the C++ webutil/url URL class (the <code>kGoogle1Escape</code>
  set).</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html#create(com.google.common.io.InputSupplier, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">create(InputSupplier&lt;? extends Reader&gt;, SoyFileKind, String)</a></span> - Static method in class com.google.template.soy.base.internal.<a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html" title="class in com.google.template.soy.base.internal">SoyFileSupplier.Factory</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html#create(com.google.common.io.CharSource, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">create(CharSource, SoyFileKind, String)</a></span> - Static method in class com.google.template.soy.base.internal.<a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html" title="class in com.google.template.soy.base.internal">SoyFileSupplier.Factory</a></dt>
 <dd>
-<div class="block">Creates a new <code>SoyFileSupplier</code> given an <code>InputSupplier</code> for the file content,
+<div class="block">Creates a new <code>SoyFileSupplier</code> given a <code>CharSource</code> for the file content,
  as well as the desired file path for messages.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html#create(java.io.File, com.google.template.soy.base.internal.SoyFileKind)">create(File, SoyFileKind)</a></span> - Static method in class com.google.template.soy.base.internal.<a href="./com/google/template/soy/base/internal/SoyFileSupplier.Factory.html" title="class in com.google.template.soy.base.internal">SoyFileSupplier.Factory</a></dt>
@@ -2434,6 +2450,10 @@
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/CssNode.html#CssNode(com.google.template.soy.soytree.CssNode)">CssNode(CssNode)</a></span> - Constructor for class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/CssNode.html" title="class in com.google.template.soy.soytree">CssNode</a></dt>
 <dd>
 <div class="block">Copy constructor.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/CssNode.html#CssNode(com.google.template.soy.soytree.CssNode, java.lang.String)">CssNode(CssNode, String)</a></span> - Constructor for class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/CssNode.html" title="class in com.google.template.soy.soytree">CssNode</a></dt>
+<dd>
+<div class="block">Transform constructor - creates a copy but with different selector text.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/render/RenderVisitor.html#cssRenamingMap">cssRenamingMap</a></span> - Variable in class com.google.template.soy.sharedpasses.render.<a href="./com/google/template/soy/sharedpasses/render/RenderVisitor.html" title="class in com.google.template.soy.sharedpasses.render">RenderVisitor</a></dt>
 <dd>
@@ -4085,6 +4105,8 @@
 <dd>
 <div class="block">The value such that attributeValue.equals(value.getAttributeValue()).</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/Visibility.html#forAttributeValue(java.lang.String)">forAttributeValue(String)</a></span> - Static method in enum com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree">Visibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="./com/google/template/soy/soytree/ForeachIfemptyNode.html" title="class in com.google.template.soy.soytree"><span class="strong">ForeachIfemptyNode</span></a> - Class in <a href="./com/google/template/soy/soytree/package-summary.html">com.google.template.soy.soytree</a></dt>
 <dd>
 <div class="block">Node representing the 'ifempty' portion of a 'foreach' statement.</div>
@@ -4502,6 +4524,10 @@
 <dd>
 <div class="block">Retrieves all nodes in a tree that are an instance of a particular class.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getAllParams()">getAllParams()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
+<dd>
+<div class="block">Returns all params from template header or SoyDoc, both regular and injected.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/msgs/restricted/SoyMsg.html#getAltId()">getAltId()</a></span> - Method in class com.google.template.soy.msgs.restricted.<a href="./com/google/template/soy/msgs/restricted/SoyMsg.html" title="class in com.google.template.soy.msgs.restricted">SoyMsg</a></dt>
 <dd>
 <div class="block">Returns the alternate unique id for this message, or -1L if not applicable.</div>
@@ -4528,6 +4554,8 @@
 <dd>
 <div class="block">Returns a form of this attribute's name suitable for use in a template attribute.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/Visibility.html#getAttributeValue()">getAttributeValue()</a></span> - Method in enum com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree">Visibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/data/internalutils/NodeContentKinds.html#getAttributeValues()">getAttributeValues()</a></span> - Static method in class com.google.template.soy.data.internalutils.<a href="./com/google/template/soy/data/internalutils/NodeContentKinds.html" title="class in com.google.template.soy.data.internalutils">NodeContentKinds</a></dt>
 <dd>
 <div class="block">The set of permitted values of the <code>kind</code> attribute.</div>
@@ -4536,6 +4564,8 @@
 <dd>
 <div class="block">The set created by element-wise application of <a href="./com/google/template/soy/soytree/AutoescapeMode.html#getAttributeValue()"><code>AutoescapeMode.getAttributeValue()</code></a> to all modes.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/Visibility.html#getAttributeValues()">getAttributeValues()</a></span> - Static method in enum com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree">Visibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getAutoescapeMode()">getAutoescapeMode()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
 <dd>
 <div class="block">Returns the mode of autoescaping, if any, done for this template.</div>
@@ -4711,6 +4741,8 @@
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/LetContentNode.html#getChildren()">getChildren()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/LetContentNode.html" title="class in com.google.template.soy.soytree">LetContentNode</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getCmdText()">getCmdText()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/internal/i18n/BidiGlobalDir.html#getCodeSnippet()">getCodeSnippet()</a></span> - Method in class com.google.template.soy.internal.i18n.<a href="./com/google/template/soy/internal/i18n/BidiGlobalDir.html" title="class in com.google.template.soy.internal.i18n">BidiGlobalDir</a></dt>
 <dd>
 <div class="block">A source code snippet that evaluates at template runtime to the bidi global direction, i.e.</div>
@@ -4829,6 +4861,16 @@
 <div class="block">The context reached after escaping content using the given mode from this context.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/internal/i18n/BidiFormatter.html#getContextDir()">getContextDir()</a></span> - Method in class com.google.template.soy.internal.i18n.<a href="./com/google/template/soy/internal/i18n/BidiFormatter.html" title="class in com.google.template.soy.internal.i18n">BidiFormatter</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/SoyFileNode.html#getCssBaseNamespace()">getCssBaseNamespace()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/SoyFileNode.html" title="class in com.google.template.soy.soytree">SoyFileNode</a></dt>
+<dd>
+<div class="block">Returns the CSS base namespace for this file (usable in any template in this file).</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getCssBaseNamespace()">getCssBaseNamespace()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
+<dd>
+<div class="block">Returns the base CSS namespace for resolving package-relative class names.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getCssBaseNamespace()">getCssBaseNamespace()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/shared/SoyGeneralOptions.html#getCssHandlingScheme()">getCssHandlingScheme()</a></span> - Method in class com.google.template.soy.shared.<a href="./com/google/template/soy/shared/SoyGeneralOptions.html" title="class in com.google.template.soy.shared">SoyGeneralOptions</a></dt>
 <dd>
@@ -5200,6 +5242,8 @@
 <dd>
 <div class="block">Returns this node's id.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getId()">getId()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/exprparse/SimpleCharStream.html#GetImage()">GetImage()</a></span> - Method in class com.google.template.soy.exprparse.<a href="./com/google/template/soy/exprparse/SimpleCharStream.html" title="class in com.google.template.soy.exprparse">SimpleCharStream</a></dt>
 <dd>
 <div class="block">Get token literal value.</div>
@@ -5219,6 +5263,10 @@
 <dt><span class="strong"><a href="./com/google/template/soy/exprtree/Operator.Operand.html#getIndex()">getIndex()</a></span> - Method in class com.google.template.soy.exprtree.<a href="./com/google/template/soy/exprtree/Operator.Operand.html" title="class in com.google.template.soy.exprtree">Operator.Operand</a></dt>
 <dd>
 <div class="block">Returns the index of this operand.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getInjectedParams()">getInjectedParams()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
+<dd>
+<div class="block">Returns the injected params from template header.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/shared/internal/DirectiveDigest.html#getInnocuousOutput()">getInnocuousOutput()</a></span> - Method in class com.google.template.soy.shared.internal.<a href="./com/google/template/soy/shared/internal/DirectiveDigest.html" title="class in com.google.template.soy.shared.internal">DirectiveDigest</a></dt>
 <dd>&nbsp;</dd>
@@ -5631,6 +5679,8 @@
 <div class="block">The names of existing language builtins or available library functions (such as Google
  Closure) that implement the escaping convention.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/shared/restricted/EscapingConventions.EscapeHtml.html#getLangFunctionNames(com.google.template.soy.shared.restricted.EscapingConventions.EscapingLanguage)">getLangFunctionNames(EscapingConventions.EscapingLanguage)</a></span> - Method in class com.google.template.soy.shared.restricted.<a href="./com/google/template/soy/shared/restricted/EscapingConventions.EscapeHtml.html" title="class in com.google.template.soy.shared.restricted">EscapingConventions.EscapeHtml</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/shared/restricted/EscapingConventions.EscapeUri.html#getLangFunctionNames(com.google.template.soy.shared.restricted.EscapingConventions.EscapingLanguage)">getLangFunctionNames(EscapingConventions.EscapingLanguage)</a></span> - Method in class com.google.template.soy.shared.restricted.<a href="./com/google/template/soy/shared/restricted/EscapingConventions.EscapeUri.html" title="class in com.google.template.soy.shared.restricted">EscapingConventions.EscapeUri</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/jssrc/internal/GenerateSoyUtilsEscapingDirectiveCode.html#getLanguage()">getLanguage()</a></span> - Method in class com.google.template.soy.jssrc.internal.<a href="./com/google/template/soy/jssrc/internal/GenerateSoyUtilsEscapingDirectiveCode.html" title="class in com.google.template.soy.jssrc.internal">GenerateSoyUtilsEscapingDirectiveCode</a></dt>
@@ -6273,10 +6323,14 @@
 <dd>
 <div class="block">Returns the SoyDoc, or null.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getSoyDoc()">getSoyDoc()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getSoyDocDesc()">getSoyDocDesc()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
 <dd>
 <div class="block">Returns the description portion of the SoyDoc (before @param tags), or null.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getSoyDocDesc()">getSoyDocDesc()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getSoyFileHeaderInfo()">getSoyFileHeaderInfo()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
 <dd>
 <div class="block">Returns info from the containing Soy file's header declarations.</div>
@@ -6356,6 +6410,8 @@
  (exclusive!) for the syntax version of this node, and the second item is a user-friendly
  explanation of the reason for the bound.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#getSyntaxVersionBound()">getSyntaxVersionBound()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/exprparse/SimpleCharStream.html#getTabSize(int)">getTabSize(int)</a></span> - Method in class com.google.template.soy.exprparse.<a href="./com/google/template/soy/exprparse/SimpleCharStream.html" title="class in com.google.template.soy.exprparse">SimpleCharStream</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soyparse/SimpleCharStream.html#getTabSize(int)">getTabSize(int)</a></span> - Method in class com.google.template.soy.soyparse.<a href="./com/google/template/soy/soyparse/SimpleCharStream.html" title="class in com.google.template.soy.soyparse">SimpleCharStream</a></dt>
@@ -6675,6 +6731,14 @@
 <dd>
 <div class="block">Returns the name of this node's local variable (without the preceding '$').</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/conformance/CheckConformance.html#getViolations(com.google.template.soy.soytree.SoyFileSetNode)">getViolations(SoyFileSetNode)</a></span> - Method in interface com.google.template.soy.conformance.<a href="./com/google/template/soy/conformance/CheckConformance.html" title="interface in com.google.template.soy.conformance">CheckConformance</a></dt>
+<dd>
+<div class="block">Runs the conformance checks from the given AST root.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#getVisibility()">getVisibility()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
+<dd>
+<div class="block">Returns the visibility of this template.</div>
+</dd>
 <dt><a href="./com/google/template/soy/exprtree/GlobalNode.html" title="class in com.google.template.soy.exprtree"><span class="strong">GlobalNode</span></a> - Class in <a href="./com/google/template/soy/exprtree/package-summary.html">com.google.template.soy.exprtree</a></dt>
 <dd>
 <div class="block">Node representing a global.</div>
@@ -6876,7 +6940,7 @@
 <dd>
 <div class="block">A parameter declared in the template header.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/HeaderParam.html#HeaderParam(java.lang.String, java.lang.String, com.google.template.soy.types.SoyType, boolean, java.lang.String)">HeaderParam(String, String, SoyType, boolean, String)</a></span> - Constructor for class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/HeaderParam.html" title="class in com.google.template.soy.soytree.defn">HeaderParam</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/HeaderParam.html#HeaderParam(java.lang.String, java.lang.String, com.google.template.soy.types.SoyType, boolean, boolean, java.lang.String)">HeaderParam(String, String, SoyType, boolean, boolean, String)</a></span> - Constructor for class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/HeaderParam.html" title="class in com.google.template.soy.soytree.defn">HeaderParam</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/exprparse/ExpressionParserConstants.html#HEX_DIGIT">HEX_DIGIT</a></span> - Static variable in interface com.google.template.soy.exprparse.<a href="./com/google/template/soy/exprparse/ExpressionParserConstants.html" title="interface in com.google.template.soy.exprparse">ExpressionParserConstants</a></dt>
 <dd>
@@ -7355,6 +7419,10 @@
 <dd>
 <div class="block">Returns Whether this is an injected parameter reference.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/TemplateParam.html#isInjected()">isInjected()</a></span> - Method in class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/TemplateParam.html" title="class in com.google.template.soy.soytree.defn">TemplateParam</a></dt>
+<dd>
+<div class="block">Returns whether the param is required.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/types/aggregate/ListType.html#isInstance(com.google.template.soy.data.SoyValue)">isInstance(SoyValue)</a></span> - Method in class com.google.template.soy.types.aggregate.<a href="./com/google/template/soy/types/aggregate/ListType.html" title="class in com.google.template.soy.types.aggregate">ListType</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/types/aggregate/MapType.html#isInstance(com.google.template.soy.data.SoyValue)">isInstance(SoyValue)</a></span> - Method in class com.google.template.soy.types.aggregate.<a href="./com/google/template/soy/types/aggregate/MapType.html" title="class in com.google.template.soy.types.aggregate">MapType</a></dt>
@@ -7440,14 +7508,6 @@
 <dt><span class="strong"><a href="./com/google/template/soy/exprtree/VarRefNode.html#isPossibleParam()">isPossibleParam()</a></span> - Method in class com.google.template.soy.exprtree.<a href="./com/google/template/soy/exprtree/VarRefNode.html" title="class in com.google.template.soy.exprtree">VarRefNode</a></dt>
 <dd>
 <div class="block">Returns whether this might be a local variable reference.</div>
-</dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNode.html#isPrivate()">isPrivate()</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNode.html" title="class in com.google.template.soy.soytree">TemplateNode</a></dt>
-<dd>
-<div class="block">Returns whether this template is private.</div>
-</dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#isPrivate">isPrivate</a></span> - Variable in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
-<dd>
-<div class="block">Whether this template is private.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/TemplateParam.html#isRequired()">isRequired()</a></span> - Method in class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/TemplateParam.html" title="class in com.google.template.soy.soytree.defn">TemplateParam</a></dt>
 <dd>
@@ -8808,6 +8868,10 @@
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/opti/OptiModule.html#OptiModule()">OptiModule()</a></span> - Constructor for class com.google.template.soy.sharedpasses.opti.<a href="./com/google/template/soy/sharedpasses/opti/OptiModule.html" title="class in com.google.template.soy.sharedpasses.opti">OptiModule</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html#optional">optional</a></span> - Variable in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder.DeclInfo</a></dt>
+<dd>
+<div class="block">Whether this is an optional parameter.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/data/Dir.html#ord">ord</a></span> - Variable in enum com.google.template.soy.data.<a href="./com/google/template/soy/data/Dir.html" title="enum in com.google.template.soy.data">Dir</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/data/UnsafeSanitizedContentOrdainer.html#ordainAsSafe(java.lang.String, com.google.template.soy.data.SanitizedContent.ContentKind)">ordainAsSafe(String, SanitizedContent.ContentKind)</a></span> - Static method in class com.google.template.soy.data.<a href="./com/google/template/soy/data/UnsafeSanitizedContentOrdainer.html" title="class in com.google.template.soy.data">UnsafeSanitizedContentOrdainer</a></dt>
@@ -8871,7 +8935,7 @@
 <dd>
 <div class="block">Helper used by subclass constructors to parse the command text.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/SoyUtils.html#parseCompileTimeGlobals(com.google.common.io.InputSupplier)">parseCompileTimeGlobals(InputSupplier&lt;? extends Reader&gt;)</a></span> - Static method in class com.google.template.soy.<a href="./com/google/template/soy/SoyUtils.html" title="class in com.google.template.soy">SoyUtils</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/SoyUtils.html#parseCompileTimeGlobals(com.google.common.io.CharSource)">parseCompileTimeGlobals(CharSource)</a></span> - Static method in class com.google.template.soy.<a href="./com/google/template/soy/SoyUtils.html" title="class in com.google.template.soy">SoyUtils</a></dt>
 <dd>
 <div class="block">Parses a globals file in the format created by <a href="./com/google/template/soy/SoyUtils.html#generateCompileTimeGlobalsFile(java.util.Map, java.lang.Appendable)"><code>SoyUtils.generateCompileTimeGlobalsFile(java.util.Map&lt;java.lang.String, ?&gt;, java.lang.Appendable)</code></a> into a
  map from global name to primitive value.</div>
@@ -9704,6 +9768,12 @@
 <dd>
 <div class="block">Construct a Scope and initialize it with one variable.</div>
 </dd>
+<dt><a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html" title="class in com.google.template.soy.sharedpasses"><span class="strong">ResolvePackageRelativeCssNamesVisitor</span></a> - Class in <a href="./com/google/template/soy/sharedpasses/package-summary.html">com.google.template.soy.sharedpasses</a></dt>
+<dd>
+<div class="block">Visitor class which converts package-relative CSS class names to absolute names.</div>
+</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html#ResolvePackageRelativeCssNamesVisitor()">ResolvePackageRelativeCssNamesVisitor()</a></span> - Constructor for class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolvePackageRelativeCssNamesVisitor</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/parsepasses/contextautoesc/ContextualAutoescaper.html#rewrite(com.google.template.soy.soytree.SoyFileSetNode)">rewrite(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.parsepasses.contextautoesc.<a href="./com/google/template/soy/parsepasses/contextautoesc/ContextualAutoescaper.html" title="class in com.google.template.soy.parsepasses.contextautoesc">ContextualAutoescaper</a></dt>
 <dd>
 <div class="block">Rewrites the given Soy files so that dynamic output is properly escaped according to the
@@ -9932,6 +10002,8 @@
 <dd>
 <div class="block">Sets whether to allow external calls (calls to undefined templates).</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setAutoescapeCmdText(java.util.Map)">setAutoescapeCmdText(Map&lt;String, String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setAutoescapeInfo(com.google.template.soy.soytree.AutoescapeMode, com.google.template.soy.data.SanitizedContent.ContentKind)">setAutoescapeInfo(AutoescapeMode, SanitizedContent.ContentKind)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/jssrc/SoyJsSrcOptions.html#setBidiGlobalDir(int)">setBidiGlobalDir(int)</a></span> - Method in class com.google.template.soy.jssrc.<a href="./com/google/template/soy/jssrc/SoyJsSrcOptions.html" title="class in com.google.template.soy.jssrc">SoyJsSrcOptions</a></dt>
@@ -9950,7 +10022,7 @@
 <dd>
 <div class="block">Sets the command text for the node to be built.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateBasicNodeBuilder.html#setCmdTextInfo(java.lang.String, java.lang.String, boolean, boolean, boolean, com.google.template.soy.soytree.AutoescapeMode, com.google.template.soy.data.SanitizedContent.ContentKind, com.google.common.collect.ImmutableList)">setCmdTextInfo(String, String, boolean, boolean, boolean, AutoescapeMode, SanitizedContent.ContentKind, ImmutableList&lt;String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateBasicNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateBasicNodeBuilder</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateBasicNodeBuilder.html#setCmdTextInfo(java.lang.String, java.lang.String, boolean, boolean, com.google.template.soy.soytree.Visibility, com.google.template.soy.soytree.AutoescapeMode, com.google.template.soy.data.SanitizedContent.ContentKind, com.google.common.collect.ImmutableList)">setCmdTextInfo(String, String, boolean, boolean, Visibility, AutoescapeMode, SanitizedContent.ContentKind, ImmutableList&lt;String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateBasicNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateBasicNodeBuilder</a></dt>
 <dd>
 <div class="block">Alternative to <code>setCmdText()</code> that sets command text info directly as opposed to having
  it parsed from the command text string.</div>
@@ -9992,6 +10064,10 @@
 <dd>
 <div class="block">Sets the expected content kind.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setCssBaseCmdText(java.util.Map)">setCssBaseCmdText(Map&lt;String, String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setCssBaseNamespace(java.lang.String)">setCssBaseNamespace(String)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/shared/SoyGeneralOptions.html#setCssHandlingScheme(com.google.template.soy.shared.SoyGeneralOptions.CssHandlingScheme)">setCssHandlingScheme(SoyGeneralOptions.CssHandlingScheme)</a></span> - Method in class com.google.template.soy.shared.<a href="./com/google/template/soy/shared/SoyGeneralOptions.html" title="class in com.google.template.soy.shared">SoyGeneralOptions</a></dt>
 <dd>
 <div class="block">Sets the scheme for handling <code>css</code> commands.</div>
@@ -10199,6 +10275,8 @@
 <div class="block">Called reflectively by Ant with the value of the <code>pattern="&lt;glob&gt;"</code> attribute of the
  <code>&lt;libdefined&gt;</code> element.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setRequireCssCmdText(java.util.Map)">setRequireCssCmdText(Map&lt;String, String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setRequiredCssNamespaces(com.google.common.collect.ImmutableList)">setRequiredCssNamespaces(ImmutableList&lt;String&gt;)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/jssrc/SoyJsSrcOptions.html#setShouldAllowDeprecatedSyntax(boolean)">setShouldAllowDeprecatedSyntax(boolean)</a></span> - Method in class com.google.template.soy.jssrc.<a href="./com/google/template/soy/jssrc/SoyJsSrcOptions.html" title="class in com.google.template.soy.jssrc">SoyJsSrcOptions</a></dt>
@@ -11433,9 +11511,9 @@
 <dd>
 <div class="block">Record for one input Soy file.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/base/internal/StableSoyFileSupplier.html#StableSoyFileSupplier(com.google.common.io.InputSupplier, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">StableSoyFileSupplier(InputSupplier&lt;? extends Reader&gt;, SoyFileKind, String)</a></span> - Constructor for class com.google.template.soy.base.internal.<a href="./com/google/template/soy/base/internal/StableSoyFileSupplier.html" title="class in com.google.template.soy.base.internal">StableSoyFileSupplier</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/base/internal/StableSoyFileSupplier.html#StableSoyFileSupplier(com.google.common.io.CharSource, com.google.template.soy.base.internal.SoyFileKind, java.lang.String)">StableSoyFileSupplier(CharSource, SoyFileKind, String)</a></span> - Constructor for class com.google.template.soy.base.internal.<a href="./com/google/template/soy/base/internal/StableSoyFileSupplier.html" title="class in com.google.template.soy.base.internal">StableSoyFileSupplier</a></dt>
 <dd>
-<div class="block">Creates a new <code>SoyFileSupplier</code> given an <code>InputSupplier</code> for the file content, as
+<div class="block">Creates a new <code>SoyFileSupplier</code> given a <code>CharSource</code> for the file content, as
  well as the desired file path for messages.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/internal/i18n/BidiFormatter.html#startEdge()">startEdge()</a></span> - Method in class com.google.template.soy.internal.i18n.<a href="./com/google/template/soy/internal/i18n/BidiFormatter.html" title="class in com.google.template.soy.internal.i18n">BidiFormatter</a></dt>
@@ -11694,13 +11772,13 @@
 <dd>
 <div class="block">Value class used in the input to method <a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#setHeaderDecls(java.util.List)"><code>TemplateNodeBuilder.setHeaderDecls(java.util.List&lt;com.google.template.soy.soytree.TemplateNodeBuilder.DeclInfo&gt;)</code></a>.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html#TemplateNodeBuilder.DeclInfo(java.lang.String, java.lang.String, java.lang.String)">TemplateNodeBuilder.DeclInfo(String, String, String)</a></span> - Constructor for class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder.DeclInfo</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html#TemplateNodeBuilder.DeclInfo(java.lang.String, java.lang.String, java.lang.String, boolean)">TemplateNodeBuilder.DeclInfo(String, String, String, boolean)</a></span> - Constructor for class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.DeclInfo.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder.DeclInfo</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="./com/google/template/soy/soytree/defn/TemplateParam.html" title="class in com.google.template.soy.soytree.defn"><span class="strong">TemplateParam</span></a> - Class in <a href="./com/google/template/soy/soytree/defn/package-summary.html">com.google.template.soy.soytree.defn</a></dt>
 <dd>
 <div class="block">An explicitly declared template parameter.</div>
 </dd>
-<dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/TemplateParam.html#TemplateParam(java.lang.String, com.google.template.soy.types.SoyType, boolean, java.lang.String)">TemplateParam(String, SoyType, boolean, String)</a></span> - Constructor for class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/TemplateParam.html" title="class in com.google.template.soy.soytree.defn">TemplateParam</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/defn/TemplateParam.html#TemplateParam(java.lang.String, com.google.template.soy.types.SoyType, boolean, boolean, java.lang.String)">TemplateParam(String, SoyType, boolean, boolean, String)</a></span> - Constructor for class com.google.template.soy.soytree.defn.<a href="./com/google/template/soy/soytree/defn/TemplateParam.html" title="class in com.google.template.soy.soytree.defn">TemplateParam</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="./com/google/template/soy/soytree/defn/TemplateParam.DeclLoc.html" title="enum in com.google.template.soy.soytree.defn"><span class="strong">TemplateParam.DeclLoc</span></a> - Enum in <a href="./com/google/template/soy/soytree/defn/package-summary.html">com.google.template.soy.soytree.defn</a></dt>
 <dd>
@@ -12711,6 +12789,10 @@
 <dd>
 <div class="block">Returns the enum constant of this type with the specified name.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/Visibility.html#valueOf(java.lang.String)">valueOf(String)</a></span> - Static method in enum com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree">Visibility</a></dt>
+<dd>
+<div class="block">Returns the enum constant of this type with the specified name.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/types/SoyType.Kind.html#valueOf(java.lang.String)">valueOf(String)</a></span> - Static method in enum com.google.template.soy.types.<a href="./com/google/template/soy/types/SoyType.Kind.html" title="enum in com.google.template.soy.types">SoyType.Kind</a></dt>
 <dd>
 <div class="block">Returns the enum constant of this type with the specified name.</div>
@@ -12845,6 +12927,11 @@ the order they are declared.</div>
 <div class="block">Returns an array containing the constants of this enum type, in
 the order they are declared.</div>
 </dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/Visibility.html#values()">values()</a></span> - Static method in enum com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree">Visibility</a></dt>
+<dd>
+<div class="block">Returns an array containing the constants of this enum type, in
+the order they are declared.</div>
+</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/types/SoyType.Kind.html#values()">values()</a></span> - Static method in enum com.google.template.soy.types.<a href="./com/google/template/soy/types/SoyType.Kind.html" title="enum in com.google.template.soy.types">SoyType.Kind</a></dt>
 <dd>
 <div class="block">Returns an array containing the constants of this enum type, in
@@ -12891,6 +12978,12 @@ the order they are declared.</div>
 <div class="block">Visitor to verify that all occurrences of the 'phname' attribute are on message placeholders.</div>
 </dd>
 <dt><span class="strong"><a href="./com/google/template/soy/parsepasses/VerifyPhnameAttrOnlyOnPlaceholdersVisitor.html#VerifyPhnameAttrOnlyOnPlaceholdersVisitor()">VerifyPhnameAttrOnlyOnPlaceholdersVisitor()</a></span> - Constructor for class com.google.template.soy.parsepasses.<a href="./com/google/template/soy/parsepasses/VerifyPhnameAttrOnlyOnPlaceholdersVisitor.html" title="class in com.google.template.soy.parsepasses">VerifyPhnameAttrOnlyOnPlaceholdersVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html#visibility">visibility</a></span> - Variable in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/TemplateNodeBuilder.html" title="class in com.google.template.soy.soytree">TemplateNodeBuilder</a></dt>
+<dd>
+<div class="block">This template's visibility level.</div>
+</dd>
+<dt><a href="./com/google/template/soy/soytree/Visibility.html" title="enum in com.google.template.soy.soytree"><span class="strong">Visibility</span></a> - Enum in <a href="./com/google/template/soy/soytree/package-summary.html">com.google.template.soy.soytree</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/basetree/AbstractNodeVisitor.html#visit(N)">visit(N)</a></span> - Method in class com.google.template.soy.basetree.<a href="./com/google/template/soy/basetree/AbstractNodeVisitor.html" title="class in com.google.template.soy.basetree">AbstractNodeVisitor</a></dt>
 <dd>
@@ -12967,6 +13060,8 @@ the order they are declared.</div>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html#visitCallNode(com.google.template.soy.soytree.CallNode)">visitCallNode(CallNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckCallingParamTypesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html#visitCallNode(com.google.template.soy.soytree.CallNode)">visitCallNode(CallNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckSoyDocVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#visitCallNode(com.google.template.soy.soytree.CallNode)">visitCallNode(CallNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitCallNode(com.google.template.soy.soytree.CallNode)">visitCallNode(CallNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>
@@ -13053,6 +13148,8 @@ the order they are declared.</div>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/RenameCssVisitor.html#visitCssNode(com.google.template.soy.soytree.CssNode)">visitCssNode(CssNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/RenameCssVisitor.html" title="class in com.google.template.soy.sharedpasses">RenameCssVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/render/RenderVisitor.html#visitCssNode(com.google.template.soy.soytree.CssNode)">visitCssNode(CssNode)</a></span> - Method in class com.google.template.soy.sharedpasses.render.<a href="./com/google/template/soy/sharedpasses/render/RenderVisitor.html" title="class in com.google.template.soy.sharedpasses.render">RenderVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html#visitCssNode(com.google.template.soy.soytree.CssNode)">visitCssNode(CssNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolvePackageRelativeCssNamesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitCssNode(com.google.template.soy.soytree.CssNode)">visitCssNode(CssNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>
@@ -13470,6 +13567,8 @@ the order they are declared.</div>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/BuildAllDependeesMapVisitor.html#visitSoyFileNode(com.google.template.soy.soytree.SoyFileNode)">visitSoyFileNode(SoyFileNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/BuildAllDependeesMapVisitor.html" title="class in com.google.template.soy.sharedpasses">BuildAllDependeesMapVisitor</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#visitSoyFileNode(com.google.template.soy.soytree.SoyFileNode)">visitSoyFileNode(SoyFileNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitSoyFileNode(com.google.template.soy.soytree.SoyFileNode)">visitSoyFileNode(SoyFileNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractSoyNodeVisitor.html#visitSoyFileNode(com.google.template.soy.soytree.SoyFileNode)">visitSoyFileNode(SoyFileNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractSoyNodeVisitor</a></dt>
@@ -13485,6 +13584,8 @@ the order they are declared.</div>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html#visitSoyFileSetNode(com.google.template.soy.soytree.SoyFileSetNode)">visitSoyFileSetNode(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckCallingParamTypesVisitor</a></dt>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html#visitSoyFileSetNode(com.google.template.soy.soytree.SoyFileSetNode)">visitSoyFileSetNode(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckSoyDocVisitor</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#visitSoyFileSetNode(com.google.template.soy.soytree.SoyFileSetNode)">visitSoyFileSetNode(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitSoyFileSetNode(com.google.template.soy.soytree.SoyFileSetNode)">visitSoyFileSetNode(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractSoyNodeVisitor.html#visitSoyFileSetNode(com.google.template.soy.soytree.SoyFileSetNode)">visitSoyFileSetNode(SoyFileSetNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractSoyNodeVisitor</a></dt>
@@ -13539,6 +13640,8 @@ the order they are declared.</div>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckSoyDocVisitor</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ClearSoyDocStringsVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ClearSoyDocStringsVisitor.html" title="class in com.google.template.soy.sharedpasses">ClearSoyDocStringsVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CombineConsecutiveRawTextNodesVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CombineConsecutiveRawTextNodesVisitor.html" title="class in com.google.template.soy.sharedpasses">CombineConsecutiveRawTextNodesVisitor</a></dt>
@@ -13562,6 +13665,8 @@ the order they are declared.</div>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolveExpressionTypesVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolveExpressionTypesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolveExpressionTypesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolveNamesVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolveNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolveNamesVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolvePackageRelativeCssNamesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitSoyNode(com.google.template.soy.soytree.SoyNode)">visitSoyNode(SoyNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>
@@ -13619,6 +13724,8 @@ the order they are declared.</div>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckCallingParamTypesVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckCallingParamTypesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckSoyDocVisitor.html" title="class in com.google.template.soy.sharedpasses">CheckSoyDocVisitor</a></dt>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/CheckTemplateVisibility.html" title="class in com.google.template.soy.sharedpasses">CheckTemplateVisibility</a></dt>
+<dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ClearSoyDocStringsVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ClearSoyDocStringsVisitor.html" title="class in com.google.template.soy.sharedpasses">ClearSoyDocStringsVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/FindIndirectParamsVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/FindIndirectParamsVisitor.html" title="class in com.google.template.soy.sharedpasses">FindIndirectParamsVisitor</a></dt>
@@ -13632,6 +13739,8 @@ the order they are declared.</div>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolveExpressionTypesVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolveExpressionTypesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolveExpressionTypesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolveNamesVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolveNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolveNamesVisitor</a></dt>
+<dd>&nbsp;</dd>
+<dt><span class="strong"><a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.sharedpasses.<a href="./com/google/template/soy/sharedpasses/ResolvePackageRelativeCssNamesVisitor.html" title="class in com.google.template.soy.sharedpasses">ResolvePackageRelativeCssNamesVisitor</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="strong"><a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html#visitTemplateNode(com.google.template.soy.soytree.TemplateNode)">visitTemplateNode(TemplateNode)</a></span> - Method in class com.google.template.soy.soytree.<a href="./com/google/template/soy/soytree/AbstractReturningSoyNodeVisitor.html" title="class in com.google.template.soy.soytree">AbstractReturningSoyNodeVisitor</a></dt>
 <dd>&nbsp;</dd>

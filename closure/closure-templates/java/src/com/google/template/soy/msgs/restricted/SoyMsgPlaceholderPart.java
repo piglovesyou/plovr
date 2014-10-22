@@ -16,13 +16,11 @@
 
 package com.google.template.soy.msgs.restricted;
 
-import com.google.common.base.Objects;
-
+import java.util.Objects;
 
 /**
  * Represents a placeholder within a message.
  *
- * @author Kai Huang
  */
 public final class SoyMsgPlaceholderPart extends SoyMsgPart {
 
@@ -52,6 +50,6 @@ public final class SoyMsgPlaceholderPart extends SoyMsgPart {
 
 
   @Override public int hashCode() {
-    return Objects.hashCode(SoyMsgPlaceholderPart.class, placeholderName.hashCode());
+    return Objects.hash(SoyMsgPlaceholderPart.class, placeholderName.hashCode());
   }
 }

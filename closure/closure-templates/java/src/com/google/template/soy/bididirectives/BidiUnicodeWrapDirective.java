@@ -17,7 +17,6 @@
 package com.google.template.soy.bididirectives;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.google.template.soy.data.Dir;
@@ -36,6 +35,7 @@ import com.google.template.soy.shared.restricted.SoyJavaPrintDirective;
 import java.util.List;
 import java.util.Set;
 
+import javax.inject.Inject;
 
 /**
  * A directive that maybe wraps the output within Unicode bidi control characters -- start character
@@ -43,8 +43,6 @@ import java.util.Set;
  * is only applied when the output text's bidi directionality is different from the bidi global
  * directionality.
  *
- * @author Kai Huang
- * @author Aharon Lanin
  */
 @Singleton
 public class BidiUnicodeWrapDirective implements SoyJavaPrintDirective, SoyJsSrcPrintDirective {
@@ -104,16 +102,15 @@ public class BidiUnicodeWrapDirective implements SoyJavaPrintDirective, SoyJsSrc
     Dir wrappedValueDir = bidiFormatter.getContextDir();
 
     // Unicode-wrapping UnsanitizedText gives UnsanitizedText.
-    // Unicode-wrapping safe HTML or JS string data gives valid, safe HTML or JS string data.
-    if (valueKind == ContentKind.TEXT || valueKind == ContentKind.HTML ||
-        valueKind == ContentKind.JS_STR_CHARS) {
+    // Unicode-wrapping safe HTML.
+    if (valueKind == ContentKind.TEXT || valueKind == ContentKind.HTML) {
       return UnsafeSanitizedContentOrdainer.ordainAsSafe(wrappedValue, valueKind, wrappedValueDir);
     }
 
     // Unicode-wrapping does not conform to the syntax of the other types of content. For lack of
     // anything better to do, we output non-SanitizedContent.
     // TODO(user): Consider throwing a runtime error on receipt of SanitizedContent other than
-    // TEXT, HTML, or JS_STR_CHARS.
+    // TEXT, or HTML.
     if (valueKind != null) {
       return StringData.forValue(wrappedValue);
     }

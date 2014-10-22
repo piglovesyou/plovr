@@ -19,6 +19,7 @@ package com.google.template.soy.sharedpasses;
 import com.google.template.soy.exprtree.AbstractExprNodeVisitor;
 import com.google.template.soy.exprtree.ExprNode;
 import com.google.template.soy.exprtree.ExprNode.ParentExprNode;
+import com.google.template.soy.exprtree.VarDefn;
 import com.google.template.soy.exprtree.VarRefNode;
 import com.google.template.soy.soytree.SoytreeUtils;
 import com.google.template.soy.soytree.SoytreeUtils.Shortcircuiter;
@@ -27,16 +28,13 @@ import com.google.template.soy.soytree.defn.TemplateParam;
 
 import java.util.List;
 
-
 /**
  * Visitor for determining whether a template needs to ensure that its data is defined.
  *
  * <p> Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public class ShouldEnsureDataIsDefinedVisitor {
-
 
   /**
    * Runs this pass on the given template.
@@ -45,11 +43,9 @@ public class ShouldEnsureDataIsDefinedVisitor {
 
     // If there exists a required param, then data should already be defined (no need to ensure).
     List<TemplateParam> params = template.getParams();
-    if (params != null) {
-      for (TemplateParam param : params) {
-        if (param.isRequired()) {
-          return false;
-        }
+    for (TemplateParam param : params) {
+      if (param.isRequired()) {
+        return false;
       }
     }
 
@@ -70,7 +66,6 @@ public class ShouldEnsureDataIsDefinedVisitor {
     return helperVisitor.foundRegDataRef();
   }
 
-
   /**
    * Private helper class for ShouldEnsureDataIsDefinedVisitor to determine whether there exists a
    * regular data ref in an expression, where regular in this case means not injected and not local
@@ -90,7 +85,11 @@ public class ShouldEnsureDataIsDefinedVisitor {
 
     @Override protected void visitVarRefNode(VarRefNode node) {
       if (node.isPossibleParam()) {
-        foundRegDataRef = true;
+        VarDefn var = node.getDefnDecl();
+        // Don't include injected params in this analysis
+        if (var.kind() != VarDefn.Kind.PARAM || !((TemplateParam) var).isInjected()) {
+          foundRegDataRef = true;
+        }
       }
     }
 
@@ -100,5 +99,4 @@ public class ShouldEnsureDataIsDefinedVisitor {
       }
     }
   }
-
 }

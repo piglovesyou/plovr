@@ -18,7 +18,6 @@
 package com.google.template.soy.shared;
 
 import com.google.common.collect.Maps;
-import com.google.inject.Inject;
 import com.google.template.soy.base.internal.IdGenerator;
 import com.google.template.soy.base.internal.IncrementingIdGenerator;
 import com.google.template.soy.base.internal.SoyFileSupplier;
@@ -28,18 +27,19 @@ import com.google.template.soy.soytree.SoyFileNode;
 
 import java.util.Map;
 
+import javax.inject.Inject;
+
 /**
  * Cache for the soy tree respecting file versions.
  *
  * <p> This allows for file-granularity caching of the parsed tree, to avoid parsing the same file
  * over and over if the contents have not changed.  This helps the development experience when
- * there are a large number of files, most of which aren't changing during the edit/reflect loop. 
+ * there are a large number of files, most of which aren't changing during the edit/reflect loop.
  * This does not help in a production startup-compilation setup; instead, this will just use more
  * memory.
  *
  * <p> Please treat the internals as Soy superpackage-private.
  *
- * @author Garrett Boyer
  */
 public class SoyAstCache {
 

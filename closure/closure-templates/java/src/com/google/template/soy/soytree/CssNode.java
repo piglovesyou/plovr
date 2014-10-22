@@ -41,7 +41,6 @@ import javax.annotation.Nullable;
  *
  * <p> Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 // TODO: Figure out why the CSS @component syntax doesn't support
 // injected data ($ij.foo).  It looks like Soy is not checking CssNodes for
@@ -51,7 +50,7 @@ public class CssNode extends AbstractCommandNode
 
 
   /** Regular expression for a CSS class name. */
-  private static final String CSS_CLASS_NAME_RE = "-?[a-zA-Z_]+[a-zA-Z0-9_-]*";
+  private static final String CSS_CLASS_NAME_RE = "(-|%)?[a-zA-Z_]+[a-zA-Z0-9_-]*";
 
   /** Pattern for valid selectorText in a 'css' tag. */
   private static final Pattern SELECTOR_TEXT_PATTERN = Pattern.compile(
@@ -120,6 +119,18 @@ public class CssNode extends AbstractCommandNode
     this.componentNameExpr =
         (orig.componentNameExpr != null) ? orig.componentNameExpr.clone() : null;
     this.selectorText = orig.selectorText;
+  }
+
+  /**
+   * Transform constructor - creates a copy but with different selector text.
+   * @param orig The node to copy.
+   */
+  public CssNode(CssNode orig, String newSelectorText) {
+    super(orig);
+    //noinspection ConstantConditions IntelliJ
+    this.componentNameExpr =
+        (orig.componentNameExpr != null) ? orig.componentNameExpr.clone() : null;
+    this.selectorText = newSelectorText;
   }
 
 

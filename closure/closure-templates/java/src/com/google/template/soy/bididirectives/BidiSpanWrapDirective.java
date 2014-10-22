@@ -17,7 +17,6 @@
 package com.google.template.soy.bididirectives;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.google.template.soy.data.Dir;
@@ -37,15 +36,13 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-
+import javax.inject.Inject;
 
 /**
  * A directive that maybe wraps the output within a 'span' with dir=ltr or dir=rtl. This wrapping
  * is only applied when the output text's bidi directionality is different from the bidi global
  * directionality.
  *
- * @author Kai Huang
- * @author Aharon Lanin
  */
 @Singleton
 public class BidiSpanWrapDirective

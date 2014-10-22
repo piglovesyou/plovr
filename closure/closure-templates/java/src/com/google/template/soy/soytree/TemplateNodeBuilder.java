@@ -28,6 +28,7 @@ import com.google.template.soy.base.internal.BaseUtils;
 import com.google.template.soy.basetree.SyntaxVersion;
 import com.google.template.soy.basetree.SyntaxVersionBound;
 import com.google.template.soy.data.SanitizedContent.ContentKind;
+import com.google.template.soy.data.internalutils.NodeContentKinds;
 import com.google.template.soy.soytree.TemplateNode.SoyFileHeaderInfo;
 import com.google.template.soy.soytree.defn.HeaderParam;
 import com.google.template.soy.soytree.defn.SoyDocParam;
@@ -41,22 +42,20 @@ import com.google.template.soy.types.primitive.NullType;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-
 /**
  * Builder for TemplateNode.
  *
  * <p>Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public abstract class TemplateNodeBuilder {
-
 
   /**
    * Value class used in the input to method {@link #setHeaderDecls}.
@@ -71,21 +70,22 @@ public abstract class TemplateNodeBuilder {
     public final String cmdText;
     /** The SoyDoc string associated with the decl, or null if none. */
     @Nullable public final String soyDoc;
+    /** Whether this is an optional parameter. */
+    @Nullable public final boolean optional;
 
-    public DeclInfo(String cmdName, String cmdText, String soyDoc) {
+    public DeclInfo(String cmdName, String cmdText, String soyDoc, boolean optional) {
       this.cmdName = cmdName;
       this.cmdText = cmdText;
       this.soyDoc = soyDoc;
+      this.optional = optional;
     }
   }
-
 
   /** Info from the containing Soy file's header declarations. */
   protected final SoyFileHeaderInfo soyFileHeaderInfo;
 
   /** The registry of named types. */
   private final SoyTypeRegistry typeRegistry;
-
 
   /** The id for this node. */
   protected Integer id;
@@ -107,8 +107,8 @@ public abstract class TemplateNodeBuilder {
   /** A string suitable for display in user msgs as the template name. */
   protected String templateNameForUserMsgs;
 
-  /** Whether this template is private. */
-  protected Boolean isPrivate;
+  /** This template's visibility level. */
+  protected Visibility visibility;
 
   /** The mode of autoescaping for this template.
    *  This is private instead of protected to enforce use of setAutoescapeInfo(). */
@@ -116,6 +116,9 @@ public abstract class TemplateNodeBuilder {
 
   /** Required CSS namespaces. */
   private ImmutableList<String> requiredCssNamespaces;
+
+  /** Base CSS namespace for package-relative CSS selectors. */
+  private String cssBaseNamespace;
 
   /** Strict mode context. Nonnull iff autoescapeMode is strict.
    *  This is private instead of protected to enforce use of setAutoescapeInfo(). */
@@ -133,7 +136,6 @@ public abstract class TemplateNodeBuilder {
   /** The params from template header and/or SoyDoc. Null if no decls and no SoyDoc. */
   @Nullable protected ImmutableList<TemplateParam> params;
 
-
   /**
    * @param soyFileHeaderInfo Info from the containing Soy file's header declarations.
    * @param typeRegistry Type registry used in parsing type declarations.
@@ -147,7 +149,6 @@ public abstract class TemplateNodeBuilder {
     // All other fields default to null.
   }
 
-
   /**
    * Sets the id for the node to be built.
    * @return This builder.
@@ -158,14 +159,12 @@ public abstract class TemplateNodeBuilder {
     return this;
   }
 
-
   /**
    * Sets the command text for the node to be built. The command text will be parsed to fill in
    * fields such as templateName and autoescapeMode.
    * @return This builder.
    */
   public abstract TemplateNodeBuilder setCmdText(String cmdText);
-
 
   /**
    * Returns a template name suitable for display in user msgs.
@@ -178,14 +177,12 @@ public abstract class TemplateNodeBuilder {
     return templateNameForUserMsgs;
   }
 
-
   /**
    * Sets the SoyDoc for the node to be built. The SoyDoc will be parsed to fill in SoyDoc param
    * info.
    * @return This builder.
    */
   public TemplateNodeBuilder setSoyDoc(String soyDoc) {
-
     Preconditions.checkState(! isSoyDocSet);
     Preconditions.checkState(cmdText != null);  // not strictly necessary
 
@@ -219,7 +216,6 @@ public abstract class TemplateNodeBuilder {
     return this;
   }
 
-
   /**
    * Sets the template header decls.
    * @param declInfos DeclInfo objects for the decls found in the template header.
@@ -231,7 +227,7 @@ public abstract class TemplateNodeBuilder {
 
     for (DeclInfo declInfo : declInfos) {
 
-      if (declInfo.cmdName.equals("@param") || declInfo.cmdName.equals("@param?")) {
+      if (declInfo.cmdName.equals("@param") || declInfo.cmdName.equals("@inject")) {
         Matcher cmdTextMatcher = HEADER_PARAM_DECL_CMD_TEXT_PATTERN.matcher(declInfo.cmdText);
         if (! cmdTextMatcher.matches()) {
           throw SoySyntaxException.createWithoutMetaInfo(
@@ -244,11 +240,12 @@ public abstract class TemplateNodeBuilder {
         }
         String typeSrc = cmdTextMatcher.group(2);
         SoyType type;
+        boolean isInjected = declInfo.cmdName.equals("@inject");
         boolean isRequired = true;
         try {
           Preconditions.checkNotNull(typeRegistry);
           type = new TypeParser(typeSrc, typeRegistry).parseTypeDeclaration();
-          if (declInfo.cmdName.equals("@param?")) {
+          if (declInfo.optional) {
             isRequired = false;
             type = typeRegistry.getOrCreateUnionType(type, NullType.getInstance());
           } else if (type instanceof UnionType && ((UnionType) type).isNullable()) {
@@ -257,7 +254,7 @@ public abstract class TemplateNodeBuilder {
         } catch (ParseException e) {
           throw SoySyntaxException.createWithoutMetaInfo(e.getMessage());
         }
-        params.add(new HeaderParam(key, typeSrc, type, isRequired, declInfo.soyDoc));
+        params.add(new HeaderParam(key, typeSrc, type, isRequired, isInjected, declInfo.soyDoc));
 
       } else {
         // The parser should never send us an illegal decl name.
@@ -269,7 +266,6 @@ public abstract class TemplateNodeBuilder {
 
     return this;
   }
-
 
   /**
    * Helper for {@code setSoyDoc()} and {@code setHeaderDecls()}. This method is intended to be
@@ -302,16 +298,43 @@ public abstract class TemplateNodeBuilder {
     }
   }
 
-
   /**
    * Builds the template node. Will error if not enough info as been set on this builder.
    */
   public abstract TemplateNode build();
 
-
   // -----------------------------------------------------------------------------------------------
   // Protected helpers for fields that need extra logic when being set.
 
+  protected void setAutoescapeCmdText(Map<String, String> attributes) {
+    AutoescapeMode autoescapeMode;
+    String autoescapeModeStr = attributes.get("autoescape");
+    if (autoescapeModeStr != null) {
+      autoescapeMode = AutoescapeMode.forAttributeValue(autoescapeModeStr);
+    } else {
+      autoescapeMode = soyFileHeaderInfo.defaultAutoescapeMode;  // inherit from file default
+    }
+
+    ContentKind contentKind = (attributes.get("kind") != null) ?
+        NodeContentKinds.forAttributeValue(attributes.get("kind")) : null;
+
+    setAutoescapeInfo(autoescapeMode, contentKind);
+  }
+
+  protected void setRequireCssCmdText(Map<String, String> attributes) {
+    setRequiredCssNamespaces(RequirecssUtils.parseRequirecssAttr(attributes.get("requirecss")));
+  }
+
+  protected void setCssBaseCmdText(Map<String, String> attributes) {
+    String cssBaseNamespace = attributes.get("cssbase");
+    if (cssBaseNamespace != null) {
+      if (!BaseUtils.isDottedIdentifier(cssBaseNamespace)) {
+        throw SoySyntaxException.createWithoutMetaInfo(
+            "Invalid CSS base namespace name \"" + cssBaseNamespace + "\".");
+      }
+      setCssBaseNamespace(cssBaseNamespace);
+    }
+  }
 
   protected void setAutoescapeInfo(
       AutoescapeMode autoescapeMode, @Nullable ContentKind contentKind) {
@@ -330,27 +353,59 @@ public abstract class TemplateNodeBuilder {
     this.contentKind = contentKind;
   }
 
+  /** @return the id for this node. */
+  public Integer getId() {
+    return id;
+  }
 
+  /** @return The lowest known syntax version bound. */
+  public SyntaxVersionBound getSyntaxVersionBound() {
+    return syntaxVersionBound;
+  }
+
+  /** @return The command text. */
+  public String getCmdText() {
+    return cmdText;
+  }
+
+  /** @return The full SoyDoc, including the start/end tokens, or null. */
+  public String getSoyDoc() {
+    return soyDoc;
+  }
+
+  /** @return The description portion of the SoyDoc (before declarations), or null. */
+  public String getSoyDocDesc() {
+    return soyDocDesc;
+  }
+
+  /** @return The mode of autoescaping for this template. */
   protected AutoescapeMode getAutoescapeMode() {
     Preconditions.checkState(autoescapeMode != null);
     return autoescapeMode;
   }
 
-
+  /** @return Strict mode context. Nonnull iff autoescapeMode is strict. */
   @Nullable protected ContentKind getContentKind() {
     return contentKind;
   }
 
+  /** @return Required CSS namespaces. */
+  protected ImmutableList<String> getRequiredCssNamespaces() {
+    return Preconditions.checkNotNull(requiredCssNamespaces);
+  }
 
   protected void setRequiredCssNamespaces(ImmutableList<String> requiredCssNamespaces) {
     this.requiredCssNamespaces = Preconditions.checkNotNull(requiredCssNamespaces);
   }
 
-
-  protected ImmutableList<String> getRequiredCssNamespaces() {
-    return Preconditions.checkNotNull(requiredCssNamespaces);
+  /** @return Base CSS namespace for package-relative CSS selectors. */
+  protected String getCssBaseNamespace() {
+    return cssBaseNamespace;
   }
 
+  protected void setCssBaseNamespace(String cssBaseNamespace) {
+    this.cssBaseNamespace = cssBaseNamespace;
+  }
 
   protected void setTemplateNames(String templateName, @Nullable String partialTemplateName) {
 
@@ -370,31 +425,25 @@ public abstract class TemplateNodeBuilder {
     }
   }
 
-
   protected String getTemplateName() {
     Preconditions.checkState(templateName != null);
     return templateName;
   }
 
-
   @Nullable protected String getPartialTemplateName() {
     return partialTemplateName;
   }
 
-
   // -----------------------------------------------------------------------------------------------
   // Private static helpers for parsing template header declarations.
-
 
   /** Pattern for the command text in a header param decl. */
   // Note: group 1 = key, group 2 = type.
   private static final Pattern HEADER_PARAM_DECL_CMD_TEXT_PATTERN =
       Pattern.compile("^ ([^:\\s]+) \\s* : \\s* (\\S .*) $", Pattern.COMMENTS | Pattern.DOTALL);
 
-
   // -----------------------------------------------------------------------------------------------
   // Private static helpers for parsing template SoyDoc.
-
 
   /** Pattern for a newline. */
   private static final Pattern NEWLINE = Pattern.compile("\\n|\\r\\n?");
@@ -416,7 +465,6 @@ public abstract class TemplateNodeBuilder {
   private static final Pattern SOY_DOC_PARAM_TEXT_PATTERN =
       Pattern.compile("[a-zA-Z_]\\w*", Pattern.COMMENTS);
 
-
   /**
    * Private helper for the constructor to clean the SoyDoc.
    * (1) Changes all newlines to "\n".
@@ -428,7 +476,6 @@ public abstract class TemplateNodeBuilder {
    * @return The cleaned SoyDoc.
    */
   private static String cleanSoyDocHelper(String soyDoc) {
-
     // Change all newlines to "\n".
     soyDoc = NEWLINE.matcher(soyDoc).replaceAll("\n");
 
@@ -454,7 +501,6 @@ public abstract class TemplateNodeBuilder {
 
     return Joiner.on('\n').join(lines);
   }
-
 
   /**
    * Private helper for {@code cleanSoyDocHelper()}.
@@ -510,7 +556,6 @@ public abstract class TemplateNodeBuilder {
     return numCharsToRemove;
   }
 
-
   /**
    * Private helper for the constructor to parse the SoyDoc description.
    *
@@ -518,19 +563,16 @@ public abstract class TemplateNodeBuilder {
    * @return The description (with trailing whitespace removed).
    */
   private static String parseSoyDocDescHelper(String cleanedSoyDoc) {
-
     Matcher paramMatcher = SOY_DOC_DECL_PATTERN.matcher(cleanedSoyDoc);
     int endOfDescPos = (paramMatcher.find()) ? paramMatcher.start() : cleanedSoyDoc.length();
     String soyDocDesc = cleanedSoyDoc.substring(0, endOfDescPos);
     return CharMatcher.WHITESPACE.trimTrailingFrom(soyDocDesc);
   }
 
-
   /**
    * Return value for {@code parseSoyDocDeclsHelper()}.
    */
   private static class SoyDocDeclsInfo {
-
     /** The params successfully parsed from the SoyDoc. */
     public List<SoyDocParam> params;
     /** SoyDoc param decl source strings with incorrect syntax. */
@@ -545,7 +587,6 @@ public abstract class TemplateNodeBuilder {
     }
   }
 
-
   /**
    * Private helper for the constructor to parse the SoyDoc declarations.
    *
@@ -553,7 +594,6 @@ public abstract class TemplateNodeBuilder {
    * @return A SoyDocDeclsInfo object with the parsed info.
    */
   private static SoyDocDeclsInfo parseSoyDocDeclsHelper(String cleanedSoyDoc) {
-
     SoyDocDeclsInfo result = new SoyDocDeclsInfo();
 
     Matcher matcher = SOY_DOC_DECL_PATTERN.matcher(cleanedSoyDoc);
@@ -597,5 +637,4 @@ public abstract class TemplateNodeBuilder {
 
     return result;
   }
-
 }

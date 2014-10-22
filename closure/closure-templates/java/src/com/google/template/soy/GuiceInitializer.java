@@ -17,10 +17,11 @@
 package com.google.template.soy;
 
 import com.google.inject.Guice;
-import com.google.inject.Inject;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.inject.Inject;
 
 /**
  * Helper class to initialize Guice for Soy users that do not use Guice.
@@ -35,7 +36,6 @@ import java.util.logging.Logger;
  *     be called. This method creates a Guice injector containing only the {@code SoyModule},
  *     which serves to bind the default Soy plugins (e.g. basic functions).
  *
- * @author Kai Huang
  */
 // TODO(gboyer): This class is very unfortunate. Static injection essentially means that whichever
 // Injector installed SoyModule last wins, which can cause bewildering errors.

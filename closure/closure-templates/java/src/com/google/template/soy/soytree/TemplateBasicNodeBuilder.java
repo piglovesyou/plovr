@@ -42,10 +42,8 @@ import javax.annotation.Nullable;
  *
  * <p>Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
-
 
   /** Pattern for a template name not listed as an attribute name="...". */
   private static final Pattern NONATTRIBUTE_TEMPLATE_NAME =
@@ -59,12 +57,13 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
           new Attribute("override", Attribute.BOOLEAN_VALUES, null),  // V1.0
           new Attribute("autoescape", AutoescapeMode.getAttributeValues(), null),
           new Attribute("kind", NodeContentKinds.getAttributeValues(), null),
-          new Attribute("requirecss", Attribute.ALLOW_ALL_VALUES, null));
+          new Attribute("requirecss", Attribute.ALLOW_ALL_VALUES, null),
+          new Attribute("cssbase", Attribute.ALLOW_ALL_VALUES, null),
+          new Attribute("visibility", Visibility.getAttributeValues(), null));
 
 
   /** Whether this template overrides another (always false for syntax version V2). */
   private Boolean isOverride;
-
 
   /**
    * @param soyFileHeaderInfo Info from the containing Soy file's header declarations.
@@ -72,7 +71,6 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
   public TemplateBasicNodeBuilder(SoyFileHeaderInfo soyFileHeaderInfo) {
     super(soyFileHeaderInfo, null);
   }
-
 
   /**
    * @param soyFileHeaderInfo Info from the containing Soy file's header declarations.
@@ -83,11 +81,9 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
     super(soyFileHeaderInfo, typeRegistry);
   }
 
-
   @Override public TemplateBasicNodeBuilder setId(int id) {
     return (TemplateBasicNodeBuilder) super.setId(id);
   }
-
 
   @Override public TemplateBasicNodeBuilder setCmdText(String cmdText) {
 
@@ -160,26 +156,37 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
       this.isOverride = overrideAttr.equals("true");
     }
 
-    this.isPrivate = attributes.get("private").equals("true");
-
-    AutoescapeMode autoescapeMode;
-    String autoescapeModeStr = attributes.get("autoescape");
-    if (autoescapeModeStr != null) {
-      autoescapeMode = AutoescapeMode.forAttributeValue(autoescapeModeStr);
-    } else {
-      autoescapeMode = soyFileHeaderInfo.defaultAutoescapeMode;  // inherit from file default
+    // See go/soy-visibility for why this is considered "legacy private".
+    if (attributes.get("private").equals("true")) {
+      visibility = Visibility.LEGACY_PRIVATE;
     }
 
-    ContentKind contentKind = (attributes.get("kind") != null) ?
-        NodeContentKinds.forAttributeValue(attributes.get("kind")) : null;
+    String visibilityName = attributes.get("visibility");
+    if (visibilityName != null) {
+      // It is an error to specify both "private" and "visibility" attrs.
+      if (visibility != null) {
+        throw SoySyntaxException.createWithoutMetaInfo(
+            "Template cannot specify both private=\"true\""
+            + "and visibility=\"" + visibilityName + "\".");
+      }
+      visibility = Visibility.forAttributeValue(visibilityName);
+      if (visibility == null) {
+        throw SoySyntaxException.createWithoutMetaInfo(
+            "Invalid visibility type \"" + visibilityName + "\".");
+      }
+    }
 
-    setAutoescapeInfo(autoescapeMode, contentKind);
+    // If the visibility hasn't been set, through either the old "private" attr
+    // or the new "visibility" attr, default to public.
+    if (visibility == null) {
+      visibility = Visibility.PUBLIC;
+    }
 
-    setRequiredCssNamespaces(RequirecssUtils.parseRequirecssAttr(attributes.get("requirecss")));
-
+    setAutoescapeCmdText(attributes);
+    setRequireCssCmdText(attributes);
+    setCssBaseCmdText(attributes);
     return this;
   }
-
 
   /**
    * Alternative to {@code setCmdText()} that sets command text info directly as opposed to having
@@ -191,7 +198,7 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
    * @param useAttrStyleForName Whether to use an attribute to specify the name. This is purely
    *     cosmetic for the generated cmdText string.
    * @param isOverride Whether this template overrides another.
-   * @param isPrivate Whether this template is private.
+   * @param visibility Visibility of this template.
    * @param autoescapeMode The mode of autoescaping for this template.
    * @param contentKind Strict mode context. Nonnull iff autoescapeMode is strict.
    * @param requiredCssNamespaces CSS namespaces required to render the template.
@@ -199,7 +206,7 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
    */
   public TemplateBasicNodeBuilder setCmdTextInfo(
       String templateName, @Nullable String partialTemplateName, boolean useAttrStyleForName,
-      boolean isOverride, boolean isPrivate, AutoescapeMode autoescapeMode,
+      boolean isOverride, Visibility visibility, AutoescapeMode autoescapeMode,
       ContentKind contentKind, ImmutableList<String> requiredCssNamespaces) {
 
     Preconditions.checkState(this.cmdText == null);
@@ -211,7 +218,7 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
     setTemplateNames(templateName, partialTemplateName);
     this.templateNameForUserMsgs = templateName;
     this.isOverride = isOverride;
-    this.isPrivate = isPrivate;
+    this.visibility = visibility;
     setAutoescapeInfo(autoescapeMode, contentKind);
     setRequiredCssNamespaces(requiredCssNamespaces);
 
@@ -230,7 +237,8 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
     if (isOverride) {
       cmdTextBuilder.append(" override=\"true\"");
     }
-    if (isPrivate) {
+    if (visibility == Visibility.LEGACY_PRIVATE) {
+      // TODO(brndn): generate code for other visibility levels. b/15190131
       cmdTextBuilder.append(" private=\"true\"");
     }
     if (!requiredCssNamespaces.isEmpty()) {
@@ -241,26 +249,16 @@ public class TemplateBasicNodeBuilder extends TemplateNodeBuilder {
     return this;
   }
 
-
   @Override public TemplateBasicNodeBuilder setSoyDoc(String soyDoc) {
     return (TemplateBasicNodeBuilder) super.setSoyDoc(soyDoc);
   }
-
 
   @Override public TemplateBasicNodeBuilder setHeaderDecls(List<DeclInfo> declInfos) {
     return (TemplateBasicNodeBuilder) super.setHeaderDecls(declInfos);
   }
 
-
   @Override public TemplateBasicNode build() {
-
     Preconditions.checkState(id != null && isSoyDocSet && cmdText != null);
-
-    return new TemplateBasicNode(
-        id, syntaxVersionBound, cmdText, soyFileHeaderInfo, getTemplateName(),
-        getPartialTemplateName(), templateNameForUserMsgs, isOverride, isPrivate,
-        getAutoescapeMode(), getContentKind(), getRequiredCssNamespaces(), soyDoc, soyDocDesc,
-        params);
+    return new TemplateBasicNode(this, soyFileHeaderInfo, isOverride, visibility, params);
   }
-
 }

@@ -32,7 +32,6 @@ import java.util.Map;
 /**
  * Unit tests for FindTransitiveDepTemplatesVisitor.
  *
- * @author Kai Huang
  */
 public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
@@ -41,7 +40,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> {bbb, ccc}, bbb -> ddd.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -105,7 +104,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> {bbb, ccc}, ccc -> bbb.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -149,7 +148,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> bbb, bbb -> {bbb, ccc}, ccc -> bbb.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -195,7 +194,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> bbb, bbb -> ccc, ccc -> aaa.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -239,7 +238,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> {bbb, ccc}, bbb -> ddd, ccc -> ddd, ddd -> bbb.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -288,7 +287,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> {bbb, ccc}, bbb -> aaa, ccc -> bbb.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .aaa}\n" +
@@ -330,7 +329,7 @@ public class FindTransitiveDepTemplatesVisitorTest extends TestCase {
 
     // aaa -> {bbb, ccc}, bbb -> ddd.
     String fileContent = "" +
-        "{namespace ns}\n" +
+        "{namespace ns autoescape=\"deprecated-noncontextual\"}\n" +
         "\n" +
         "/***/\n" +
         "{template .bbb}\n" +

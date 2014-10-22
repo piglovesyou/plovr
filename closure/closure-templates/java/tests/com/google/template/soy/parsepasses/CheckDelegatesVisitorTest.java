@@ -28,7 +28,6 @@ import junit.framework.TestCase;
 /**
  * Unit tests for CheckDelegatesVisitor.
  *
- * @author Kai Huang
  */
 public class CheckDelegatesVisitorTest extends TestCase {
 
@@ -37,7 +36,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
 
     assertValidSoyFiles(
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -45,7 +44,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .foo private=\"true\"}\n" +
@@ -58,7 +57,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
 
     assertValidSoyFiles(
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -71,7 +70,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/deltemplate}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/** @param foo */\n" +
             "{deltemplate MagicButton}\n" +
@@ -84,7 +83,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
 
     assertValidSoyFiles(
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -97,7 +96,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/deltemplate}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/** @param foo */\n" +
             "{deltemplate MagicButton}\n" +
@@ -111,7 +110,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
     assertInvalidSoyFiles(
         "Found template name [ns1.boo] being reused for both basic and delegate templates.",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -119,7 +118,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{deltemplate ns1.boo}\n" +  // reused name ns1.boo
@@ -135,7 +134,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "Found delegate template with same name 'MagicButton' " +
             "but different param declarations compared to the definition at no-path-2:5.",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -148,7 +147,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/deltemplate}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/** @param foo */\n" +  // has param 'foo'
             "{deltemplate MagicButton}\n" +
@@ -159,7 +158,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "Found delegate template with same name 'MagicButton' but different param declarations" +
             " compared to the definition at no-path-2:5.",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -172,7 +171,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/deltemplate}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/** @param foo */\n" +  // param 'foo' is required
             "{deltemplate MagicButton}\n" +
@@ -188,7 +187,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "Found delegate template with same name 'MagicButton' " +
             "but different param declarations compared to the definition at no-path:4.",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +  // no params
             "{deltemplate MagicButton}\n" +
@@ -205,7 +204,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
 
     assertValidSoyFiles(
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -213,7 +212,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .foo}\n" +  // not marked private
@@ -228,7 +227,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "In template 'ns1.boo', found a 'call' referencing a delegate template 'MagicButton'" +
             " (expected 'delcall').",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -241,7 +240,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/deltemplate}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/** @param foo */\n" +
             "{deltemplate MagicButton}\n" +
@@ -255,7 +254,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
     assertInvalidSoyFiles(
         "Found illegal call from 'ns1.boo' to 'ns2.foo', which is in a different delegate package.",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -263,7 +262,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .foo}\n" +
@@ -278,7 +277,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "Found illegal call from 'ns1.boo' to 'ns2.foo', which is in a different delegate package.",
         "" +
             "{delpackage NotQuiteSoSecretFeature}\n" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
@@ -286,7 +285,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n",
         "" +
             "{delpackage SecretFeature}\n" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .foo}\n" +
@@ -301,14 +300,14 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "In template 'ns1.boo', found a 'delcall' referencing a basic template 'ns2.foo'" +
             " (expected 'call').",
         "" +
-            "{namespace ns1}\n" +
+            "{namespace ns1 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .boo}\n" +
             "  {delcall ns2.foo /}\n" +  // delegate call (should be basic call)
             "{/template}\n",
         "" +
-            "{namespace ns2}\n" +
+            "{namespace ns2 autoescape=\"deprecated-noncontextual\"}\n" +
             "\n" +
             "/***/\n" +
             "{template .foo private=\"true\"}\n" +
@@ -316,7 +315,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{/template}\n");
   }
 
-  
+
   public void testStrictModeContentKindMatches() {
 
     // One is strict and the other is not.
@@ -328,7 +327,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "" +
             "{namespace ns}\n\n" +
             "/***/\n" +
-            "{template .main autoescape=\"contextual\"}\n" +
+            "{template .main autoescape=\"deprecated-contextual\"}\n" +
               "{delcall foo}\n" +
                 "{param x: '' /}\n" +
               "{/delcall}\n" +
@@ -337,7 +336,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
             "{delpackage dp1}\n" +
             "{namespace ns}\n\n" +
             "/** @param x */\n" +
-            "{deltemplate foo autoescape=\"contextual\"}\n" +
+            "{deltemplate foo autoescape=\"deprecated-contextual\"}\n" +
               "<b>{$x}</b>\n" +
             "{/deltemplate}",
         "" +
@@ -357,7 +356,7 @@ public class CheckDelegatesVisitorTest extends TestCase {
         "" +
             "{namespace ns}\n\n" +
             "/***/\n" +
-            "{template .main autoescape=\"contextual\"}\n" +
+            "{template .main autoescape=\"deprecated-contextual\"}\n" +
               "{delcall foo}\n" +
                 "{param x: '' /}\n" +
               "{/delcall}\n" +

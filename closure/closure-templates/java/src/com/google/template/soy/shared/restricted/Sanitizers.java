@@ -45,7 +45,6 @@ import java.util.regex.Matcher;
  * These correspond to the {@code soy.$$escape*}, {@code soy.$$normalize*}, and
  * {@code soy.$$filter*} functions defined in "soyutils.js".
  *
- * @author Mike Samuel
  */
 public final class Sanitizers {
 
@@ -224,9 +223,6 @@ public final class Sanitizers {
    * Converts the input to the body of a JavaScript string by using {@code \n} style escapes.
    */
   public static String escapeJsString(SoyValue value) {
-    if (isSanitizedContentOfKind(value, SanitizedContent.ContentKind.JS_STR_CHARS)) {
-      return value.coerceToString();
-    }
     return escapeJsString(value.coerceToString());
   }
 

@@ -16,7 +16,6 @@
 
 package com.google.template.soy.parsepasses.contextautoesc;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -41,10 +40,10 @@ import com.google.template.soy.soytree.TemplateNode.SoyFileHeaderInfo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
 
 /**
  * Encapsulates information inferred about a Soy file and decisions made to change it.
@@ -64,7 +63,6 @@ import javax.annotation.Nullable;
  * inferences into the parent until it ends up with a final set of rewriting decisions that the
  * {@link Rewriter} applies to the input Soy parse tree.
  *
- * @author Mike Samuel
  */
 final class Inferences {
 
@@ -270,13 +268,13 @@ final class Inferences {
                 .setId(cloneId)
                 .setCmdTextInfo(
                     derivedName, derivedPartialName, useAttrStyleForName, tbn.isOverride(),
-                    tn.isPrivate(), tn.getAutoescapeMode(), tn.getContentKind(),
+                    tn.getVisibility(), tn.getAutoescapeMode(), tn.getContentKind(),
                     tn.getRequiredCssNamespaces())
                 .setSoyDoc(tn.getSoyDoc())
                 .build();
 
         if (! (derivedName.equals(clone.getTemplateName()) &&
-            Objects.equal(derivedPartialName, clone.getPartialTemplateName()))) {
+            Objects.equals(derivedPartialName, clone.getPartialTemplateName()))) {
           throw new AssertionError();
         }
 

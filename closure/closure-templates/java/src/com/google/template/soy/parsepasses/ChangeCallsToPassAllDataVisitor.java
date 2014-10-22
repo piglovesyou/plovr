@@ -42,7 +42,6 @@ import com.google.template.soy.soytree.TemplateNode;
  * <p> This visitor must be called on a SoyFileSetNode, SoyFileNode, or TemplateNode (i.e. template
  * or ancestor of a template).
  *
- * @author Kai Huang
  */
 public class ChangeCallsToPassAllDataVisitor extends AbstractSoyNodeVisitor<Void> {
 
@@ -90,7 +89,7 @@ public class ChangeCallsToPassAllDataVisitor extends AbstractSoyNodeVisitor<Void
         return;
       }
       CallParamValueNode valueParam = (CallParamValueNode) param;
-      if (! ("$" + valueParam.getKey()).equals(valueParam.getValueExprText())) {
+      if (!("$" + valueParam.getKey()).equals(valueParam.getValueExprText())) {
         return;
       }
       ExprRootNode<?> valueExprRoot = ((CallParamValueNode) param).getValueExprUnion().getExpr();

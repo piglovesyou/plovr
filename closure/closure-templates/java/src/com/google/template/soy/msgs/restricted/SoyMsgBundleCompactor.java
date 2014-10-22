@@ -16,10 +16,11 @@
 
 package com.google.template.soy.msgs.restricted;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.template.soy.internal.base.Pair;
 import com.google.template.soy.msgs.SoyMsgBundle;
+
+import java.util.Objects;
 
 /**
  * Utility to compact message bundles.
@@ -35,7 +36,6 @@ import com.google.template.soy.msgs.SoyMsgBundle;
  * <p> This saves an enormous amount of memory, especially since in gender/plural messages, there
  * are many repeated parts.
  *
- * @author Garrett Boyer
  */
 public final class SoyMsgBundleCompactor {
 
@@ -125,7 +125,7 @@ public final class SoyMsgBundleCompactor {
     // Determine the fallback/other case value.
     ImmutableList<SoyMsgPart> defaultValue = null;
     for (Pair<T, ImmutableList<SoyMsgPart>> caseAndValue : cases) {
-      if (Objects.equal(caseAndValue.first, defaultCaseSpec)) {
+      if (Objects.equals(caseAndValue.first, defaultCaseSpec)) {
         defaultValue = caseAndValue.second;
         break;
       }
@@ -136,7 +136,7 @@ public final class SoyMsgBundleCompactor {
 
       // See if this case is the same as the default/other case, but isn't itself the default/other
       // case, and can be pruned.
-      if (defaultValue != null && !Objects.equal(caseAndValue.first, defaultCaseSpec)
+      if (defaultValue != null && !Objects.equals(caseAndValue.first, defaultCaseSpec)
           && defaultValue.equals(caseAndValue.second)) {
         continue;
       }

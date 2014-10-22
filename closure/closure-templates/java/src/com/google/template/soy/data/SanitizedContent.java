@@ -24,7 +24,6 @@ import javax.annotation.concurrent.Immutable;
 /**
  * A chunk of sanitized content of a known kind, e.g. the output of an HTML sanitizer.
  *
- * @author Mike Samuel
  */
 @ParametersAreNonnullByDefault
 @Immutable
@@ -50,19 +49,6 @@ public final class SanitizedContent extends SoyData {
      * control.
      */
     JS,
-
-    /**
-     * A sequence of code units that can appear between quotes (either single or double) in a JS
-     * program without causing a parse error, and without causing any side effects.
-     * <p>
-     * The content should not contain unescaped quotes, newlines, or anything else that would
-     * cause parsing to fail or to cause a JS parser to finish the string it is parsing inside
-     * the content.
-     * <p>
-     * The content must also not end inside an escape sequence ; no partial octal escape sequences
-     * or odd number of '{@code \}'s at the end.
-     */
-    JS_STR_CHARS,
 
     /** A properly encoded portion of a URI. */
     URI,
@@ -178,5 +164,4 @@ public final class SanitizedContent extends SoyData {
   public int hashCode() {
     return content.hashCode() + 31 * contentKind.hashCode();
   }
-
 }

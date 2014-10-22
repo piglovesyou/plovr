@@ -28,7 +28,6 @@ import junit.framework.TestCase;
 /**
  * Unit tests for RemoveHtmlCommentsVisitor.
  *
- * @author Kai Huang
  */
 public class RemoveHtmlCommentsVisitorTest extends TestCase {
 
@@ -37,7 +36,7 @@ public class RemoveHtmlCommentsVisitorTest extends TestCase {
 
     String testFileContent =
         "/** V1 syntax. */\n" +
-        "{template name=\"foo\"}\n" +
+        "{template name=\"foo\" autoescape=\"deprecated-noncontextual\"}\n" +
         "  <!-- comment 1 -->\n" +
         "  {$boo}\n" +
         "  Blah <!-- comment 2 -->blah.\n" +

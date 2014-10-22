@@ -17,9 +17,9 @@
 package com.google.template.soy.soytree;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.template.soy.base.SourceLocation;
-import com.google.template.soy.basetree.SyntaxVersionBound;
 import com.google.template.soy.data.SanitizedContent.ContentKind;
 import com.google.template.soy.soytree.SoyNode.RenderUnitNode;
 import com.google.template.soy.soytree.defn.HeaderParam;
@@ -36,14 +36,11 @@ import javax.annotation.concurrent.Immutable;
  *
  * <p>Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public abstract class TemplateNode extends AbstractBlockCommandNode implements RenderUnitNode {
 
-
   /** Priorities range from 0 to MAX_PRIORITY, inclusive. */
   public static final int MAX_PRIORITY = 1;
-
 
   /**
    * Info from the containing Soy file's {@code delpackage} and {@code namespace} declarations.
@@ -81,10 +78,8 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
     }
   }
 
-
   // -----------------------------------------------------------------------------------------------
   // TemplateNode body.
-
 
   /** Info from the containing Soy file's header declarations. */
   private final SoyFileHeaderInfo soyFileHeaderInfo;
@@ -98,8 +93,8 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
   /** A string suitable for display in user msgs as the template name. */
   private final String templateNameForUserMsgs;
 
-  /** Whether this template is private. */
-  private final boolean isPrivate;
+  /** Visibility of this template. */
+  private final Visibility visibility;
 
   /** The mode of autoescaping for this template. */
   private final AutoescapeMode autoescapeMode;
@@ -110,6 +105,9 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
   /** Required CSS namespaces. */
   private final ImmutableList<String> requiredCssNamespaces;
 
+  /** Base namespace for package-relative class names. */
+  private final String cssBaseNamespace;
+
   /** The full SoyDoc, including the start/end tokens, or null. */
   private String soyDoc;
 
@@ -119,51 +117,54 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
   /** The params from template header or SoyDoc. Null if no decls and no SoyDoc. */
   @Nullable private ImmutableList<TemplateParam> params;
 
+  /** The injected params from template header. Null if no decls. */
+  @Nullable private ImmutableList<TemplateParam> injectedParams;
 
   /**
    * Main constructor. This is package-private because Template*Node instances should be built using
    * the Template*NodeBuilder classes.
    *
-   * @param id The id for this node.
-   * @param syntaxVersionBound The lowest known upper bound (exclusive!) for the syntax version of
-   *     this node.
+   * @param nodeBuilder Builder containing template initialization params.
    * @param cmdName The command name.
-   * @param cmdText The command text.
    * @param soyFileHeaderInfo Info from the containing Soy file's header declarations.
-   * @param templateName This template's name.
-   * @param partialTemplateName This template's partial name. Only applicable for V2; null for V1.
-   * @param templateNameForUserMsgs A string suitable for display in user msgs as the template name.
-   * @param isPrivate Whether this template is private.
-   * @param autoescapeMode The mode of autoescaping for this template.
-   * @param contentKind Strict mode context. Nonnull iff autoescapeMode is strict.
-   * @param requiredCssNamespaces CSS namespaces required to render the template.
-   * @param soyDoc The full SoyDoc, including the start/end tokens, or null.
-   * @param soyDocDesc The description portion of the SoyDoc (before declarations), or null.
+   * @param visibility Visibility of this template.
    * @param params The params from template header or SoyDoc. Null if no decls and no SoyDoc.
    */
-  TemplateNode(
-      int id, @Nullable SyntaxVersionBound syntaxVersionBound, String cmdName, String cmdText,
-      SoyFileHeaderInfo soyFileHeaderInfo, String templateName,
-      @Nullable String partialTemplateName, String templateNameForUserMsgs, boolean isPrivate,
-      AutoescapeMode autoescapeMode, ContentKind contentKind,
-      ImmutableList<String> requiredCssNamespaces, String soyDoc, String soyDocDesc,
+  TemplateNode(TemplateNodeBuilder nodeBuilder, String cmdName,
+      SoyFileHeaderInfo soyFileHeaderInfo, Visibility visibility,
       @Nullable ImmutableList<TemplateParam> params) {
 
-    super(id, cmdName, cmdText);
-    maybeSetSyntaxVersionBound(syntaxVersionBound);
+    super(nodeBuilder.getId(), cmdName, nodeBuilder.getCmdText());
+    maybeSetSyntaxVersionBound(nodeBuilder.getSyntaxVersionBound());
     this.soyFileHeaderInfo = soyFileHeaderInfo;
-    this.templateName = templateName;
-    this.partialTemplateName = partialTemplateName;
-    this.templateNameForUserMsgs = templateNameForUserMsgs;
-    this.isPrivate = isPrivate;
-    this.autoescapeMode = autoescapeMode;
-    this.contentKind = contentKind;
-    this.requiredCssNamespaces = requiredCssNamespaces;
-    this.soyDoc = soyDoc;
-    this.soyDocDesc = soyDocDesc;
-    this.params = params;
-  }
+    this.templateName = nodeBuilder.getTemplateName();
+    this.partialTemplateName = nodeBuilder.getPartialTemplateName();
+    this.templateNameForUserMsgs = nodeBuilder.getTemplateNameForUserMsgs();
+    this.visibility = visibility;
+    this.autoescapeMode = nodeBuilder.getAutoescapeMode();
+    this.contentKind = nodeBuilder.getContentKind();
+    this.requiredCssNamespaces = nodeBuilder.getRequiredCssNamespaces();
+    this.cssBaseNamespace = nodeBuilder.getCssBaseNamespace();
+    this.soyDoc = nodeBuilder.getSoyDoc();
+    this.soyDocDesc = nodeBuilder.getSoyDocDesc();
 
+    // Split out @inject params into a separate list because we don't want them
+    // to be visible to code that looks at the template's calling signature.
+    ImmutableList.Builder<TemplateParam> regularParams = ImmutableList.builder();
+    ImmutableList.Builder<TemplateParam> injectedParams = ImmutableList.builder();
+    if (params != null) {
+      for (TemplateParam param : params) {
+        if (param.isInjected()) {
+          injectedParams.add(param);
+        } else {
+          regularParams.add(param);
+        }
+      }
+    }
+    // Note: These used to be nullable, but now return an empty list.
+    this.params = regularParams.build();
+    this.injectedParams = injectedParams.build();
+  }
 
   /**
    * Copy constructor.
@@ -175,63 +176,56 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
     this.templateName = orig.templateName;
     this.partialTemplateName = orig.partialTemplateName;
     this.templateNameForUserMsgs = orig.templateNameForUserMsgs;
-    this.isPrivate = orig.isPrivate;
+    this.visibility = orig.visibility;
     this.autoescapeMode = orig.autoescapeMode;
     this.contentKind = orig.contentKind;
     this.requiredCssNamespaces = orig.requiredCssNamespaces;
+    this.cssBaseNamespace = orig.cssBaseNamespace;
     this.soyDoc = orig.soyDoc;
     this.soyDocDesc = orig.soyDocDesc;
     this.params = orig.params;  // immutable
+    this.injectedParams = orig.injectedParams;
   }
-
 
   /** Returns info from the containing Soy file's header declarations. */
   public SoyFileHeaderInfo getSoyFileHeaderInfo() {
     return soyFileHeaderInfo;
   }
 
-
   /** Returns the name of the containing delegate package, or null if none. */
   public String getDelPackageName() {
     return soyFileHeaderInfo.delPackageName;
   }
-
 
   /** Returns a template name suitable for display in user msgs. */
   public String getTemplateNameForUserMsgs() {
     return templateNameForUserMsgs;
   }
 
-
   /** Returns this template's name. */
   public String getTemplateName() {
     return templateName;
   }
-
 
   /** Returns this template's partial name. Only applicable for V2 (null for V1). */
   @Nullable public String getPartialTemplateName() {
     return partialTemplateName;
   }
 
-
-  /** Returns whether this template is private. */
-  public boolean isPrivate() {
-    return isPrivate;
+  /** Returns the visibility of this template. */
+  public Visibility getVisibility() {
+    return visibility;
   }
-
 
   /** Returns the mode of autoescaping, if any, done for this template. */
   public AutoescapeMode getAutoescapeMode() {
     return autoescapeMode;
   }
 
-
   /** Returns the content kind for strict autoescaping. Nonnull iff autoescapeMode is strict. */
   @Override @Nullable public ContentKind getContentKind() {
     return contentKind;
   }
-
 
   /**
    * Returns required CSS namespaces.
@@ -244,6 +238,21 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
     return requiredCssNamespaces;
   }
 
+  /**
+   * Returns the base CSS namespace for resolving package-relative class names.
+   * Package relative class names are ones beginning with a percent (%). The compiler
+   * will replace the percent sign with the name of the current CSS package converted
+   * to camel-case form.
+   *
+   * Packages are defined using dotted-id syntax (foo.bar), which is identical to
+   * the syntax for required CSS namespaces. If no base CSS namespace is defined,
+   * it will use the first required css namespace, if any are present. If there is no
+   * base CSS name, and no required css namespaces, then use of package-relative
+   * class names will be reported as an error.
+   */
+  public String getCssBaseNamespace() {
+    return cssBaseNamespace;
+  }
 
   /** Clears the SoyDoc text, description, and param descriptions. */
   public void clearSoyDocStrings() {
@@ -258,32 +267,36 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
     params = ImmutableList.copyOf(newParams);
   }
 
-
   /** Returns the SoyDoc, or null. */
   public String getSoyDoc() {
     return soyDoc;
   }
-
 
   /** Returns the description portion of the SoyDoc (before @param tags), or null. */
   public String getSoyDocDesc() {
     return soyDocDesc;
   }
 
-
-  /** Returns the params from template header or SoyDoc. Null if no decls and no SoyDoc. */
-  @Nullable public List<TemplateParam> getParams() {
+  /** Returns the params from template header or SoyDoc. */
+  public List<TemplateParam> getParams() {
     return params;
   }
 
+  /** Returns the injected params from template header. */
+  public List<TemplateParam> getInjectedParams() {
+    return injectedParams;
+  }
+
+  /** Returns all params from template header or SoyDoc, both regular and injected. */
+  @Nullable public Iterable<TemplateParam> getAllParams() {
+    return Iterables.concat(params, injectedParams);
+  }
 
   @Override public SoyFileNode getParent() {
     return (SoyFileNode) super.getParent();
   }
 
-
   @Override public String toSourceString() {
-
     StringBuilder sb = new StringBuilder();
 
     // SoyDoc.
@@ -331,7 +344,6 @@ public abstract class TemplateNode extends AbstractBlockCommandNode implements R
 
     return sb.toString();
   }
-
 
   /**
    * Construct a StackTraceElement that will point to the given source location of the current

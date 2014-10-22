@@ -16,8 +16,9 @@
 
 package com.google.template.soy.soytree.defn;
 
-import com.google.common.base.Objects;
 import com.google.template.soy.types.SoyType;
+
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -27,12 +28,9 @@ import javax.annotation.concurrent.Immutable;
  *
  * <p>Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
- * @author Talin
  */
 @Immutable
 public abstract class TemplateParam extends AbstractVarDefn {
-
   /**
    * Enum for the location of the declaration.
    */
@@ -48,47 +46,52 @@ public abstract class TemplateParam extends AbstractVarDefn {
   /** Whether the param is required. */
   private final boolean isRequired;
 
+  /** Whether the param is an injected param. */
+  private final boolean isInjected;
+
   /** The parameter description. */
   private final String desc;
 
-
-  public TemplateParam(String name, SoyType type, boolean isRequired, @Nullable String desc) {
+  public TemplateParam(
+      String name,
+      SoyType type,
+      boolean isRequired,
+      boolean isInjected,
+      @Nullable String desc) {
     super(name, type);
     this.isRequired = isRequired;
+    this.isInjected = isInjected;
     this.desc = desc;
   }
-
 
   @Override public Kind kind() {
     return Kind.PARAM;
   }
 
-
   /** Returns the location of the parameter declaration. */
   public abstract DeclLoc declLoc();
-
 
   /** Returns whether the param is required. */
   public boolean isRequired() {
     return isRequired;
   }
 
+  /** Returns whether the param is required. */
+  public boolean isInjected() {
+    return isInjected;
+  }
 
   public String desc() {
     return desc;
   }
 
-
   public abstract TemplateParam cloneEssential();
-
 
   // Subclasses must implement equals().
   @Override public abstract boolean equals(Object o);
 
-
   // Subclasses must implement hashCode().
   @Override public abstract int hashCode();
-
 
   protected boolean abstractEquals(Object o) {
     // Note: 'type' and 'desc' are nonessential with respect to equality.
@@ -103,6 +106,6 @@ public abstract class TemplateParam extends AbstractVarDefn {
   protected int abstractHashCode() {
     // Note: This is valid only if you don't try and mix parameters from
     // different templates in the same set.
-    return Objects.hashCode(this.getClass(), name(), isRequired);
+    return Objects.hash(this.getClass(), name(), isRequired, isInjected);
   }
 }

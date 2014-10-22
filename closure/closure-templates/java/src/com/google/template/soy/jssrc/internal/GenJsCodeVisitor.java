@@ -78,6 +78,7 @@ import com.google.template.soy.soytree.TemplateBasicNode;
 import com.google.template.soy.soytree.TemplateDelegateNode;
 import com.google.template.soy.soytree.TemplateNode;
 import com.google.template.soy.soytree.TemplateRegistry;
+import com.google.template.soy.soytree.Visibility;
 import com.google.template.soy.soytree.XidNode;
 import com.google.template.soy.soytree.defn.HeaderParam;
 import com.google.template.soy.soytree.defn.TemplateParam;
@@ -110,7 +111,6 @@ import java.util.regex.Pattern;
  * all the Soy files. The return value is a list of strings, each string being the content of one
  * generated JS file (corresponding to one Soy file).
  *
- * @author Kai Huang
  */
 class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
 
@@ -568,6 +568,12 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
     genJsExprsVisitor = genJsExprsVisitorFactory.create(localVarTranslations);
     assistantForMsgs = null;
 
+    if (!node.getInjectedParams().isEmpty() && !isUsingIjData) {
+      throw SoySyntaxExceptionUtils.createWithNode(
+          "Template declares @injected params but injected data is not enabled.",
+          node);
+    }
+
     // ------ Generate JS Doc. ------
     if (jsSrcOptions.shouldGenerateJsdoc()) {
       jsCodeBuilder.appendLine("/**");
@@ -590,12 +596,15 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
           ? "string"
           : "!" + NodeContentKinds.toJsSanitizedContentCtorName(node.getContentKind());
       jsCodeBuilder.appendLine(" * @return {", returnType, "}");
-      String suppressions = "checkTypes|uselessCode";
+      String suppressions = "checkTypes";
       if (node instanceof TemplateBasicNode &&
           ((TemplateBasicNode) node).isOverride()) {
         suppressions += "|duplicate";
       }
       jsCodeBuilder.appendLine(" * @suppress {" + suppressions + "}");
+      if (node.getVisibility() == Visibility.PRIVATE) {
+        jsCodeBuilder.appendLine(" * @private");
+      }
       jsCodeBuilder.appendLine(" */");
     }
 
@@ -649,9 +658,7 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
     }
 
     // Type check parameters.
-    if (node.getParams() != null) {
-      genParamTypeChecks(node);
-    }
+    genParamTypeChecks(node);
 
     JsExpr resultJsExpr;
     if (!isCodeStyleStringbuilder && isComputableAsJsExprsVisitor.exec(node)) {
@@ -1367,12 +1374,13 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
    * @param node the template node.
    */
   private void genParamTypeChecks(TemplateNode node) {
-    for (TemplateParam param : node.getParams()) {
+    for (TemplateParam param : node.getAllParams()) {
       if (param.declLoc() != TemplateParam.DeclLoc.HEADER) {
         continue;
       }
       String paramName = ((HeaderParam) param).name();
-      String paramVal = "opt_data" + TranslateToJsExprVisitor.genCodeForKeyAccess(paramName);
+      String paramVal = (param.isInjected() ? "opt_ijData" : "opt_data") +
+          TranslateToJsExprVisitor.genCodeForKeyAccess(paramName);
       String paramAlias = genParamAlias(paramName);
       boolean isAliasedLocalVar = false;
       switch (param.type().getKind()) {
@@ -1383,13 +1391,20 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
 
         case STRING:
           genParamTypeChecksUsingGeneralAssert(
-              paramName, paramAlias, paramVal,
+              paramName, paramAlias, paramVal, param.isInjected(),
               "goog.isString({0}) || ({0} instanceof goog.soy.data.SanitizedContent)",
               "string|goog.soy.data.SanitizedContent");
           isAliasedLocalVar = true;
           break;
 
         case BOOL:
+          genParamTypeChecksUsingGeneralAssert(
+              paramName, paramAlias, "!!" + paramVal, param.isInjected(),
+              "goog.isBoolean({0}) || {0} === 1 || {0} === 0",
+              "boolean");
+          isAliasedLocalVar = true;
+          break;
+
         case INT:
         case FLOAT:
         case LIST:
@@ -1397,10 +1412,6 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
         case MAP: {
           String assertionFunction = null;
           switch (param.type().getKind()) {
-            case BOOL:
-              assertionFunction = "goog.asserts.assertBoolean";
-              break;
-
             case INT:
             case FLOAT:
               assertionFunction = "goog.asserts.assertNumber";
@@ -1454,7 +1465,7 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
             paramVal = extractProtoFromMap(paramVal);
           }
           genParamTypeChecksUsingGeneralAssert(
-              paramName, paramAlias, paramVal,
+              paramName, paramAlias, paramVal, param.isInjected(),
               genUnionTypeTests(unionType),
               JsSrcUtils.getJsTypeExpr(param.type(), false, false));
           isAliasedLocalVar = true;
@@ -1467,7 +1478,7 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
             // sanitized type is specified - it just means that the text will
             // be escaped.
             genParamTypeChecksUsingGeneralAssert(
-                paramName, paramAlias, paramVal,
+                paramName, paramAlias, paramVal, param.isInjected(),
                 "({0} instanceof " + typeName +
                 ") || ({0} instanceof soydata.UnsanitizedText) || goog.isString({0})",
                 typeName);
@@ -1586,10 +1597,10 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
    *     succeeds.
    */
   private void genParamTypeChecksUsingGeneralAssert(
-      String paramName, String paramAlias, String paramVal, String typePredicate,
-      String jsDocTypeExpr) {
+      String paramName, String paramAlias, String paramVal, boolean isInjected,
+      String typePredicate, String jsDocTypeExpr) {
     // The opt_param.name value that will be type-tested.
-    String paramAccessVal = TranslateToJsExprVisitor.genCodeForParamAccess(paramName);
+    String paramAccessVal = TranslateToJsExprVisitor.genCodeForParamAccess(paramName, isInjected);
     jsCodeBuilder.appendLine(
         "goog.asserts.assert(" + MessageFormat.format(typePredicate, paramAccessVal) +
         ", \"expected param '" + paramName + "' of type " + jsDocTypeExpr + ".\");");
@@ -1655,13 +1666,13 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
    * Return true if the template has at least one strict param.
    */
   private boolean hasStrictParams(TemplateNode template) {
-    if (template.getParams() != null) {
-      for (TemplateParam param : template.getParams()) {
-        if (param.declLoc() == TemplateParam.DeclLoc.HEADER) {
-          return true;
-        }
+    for (TemplateParam param : template.getParams()) {
+      if (param.declLoc() == TemplateParam.DeclLoc.HEADER) {
+        return true;
       }
     }
+    // Note: If there are only injected params, don't use strong typing for
+    // the function signature, because what it will produce is an empty struct.
     return false;
   }
 
@@ -1677,10 +1688,7 @@ class GenJsCodeVisitor extends AbstractSoyNodeVisitor<List<String>> {
     FieldImportsVisitor fieldImportsVisitor = new FieldImportsVisitor(requiredObjectTypes);
     for (TemplateNode template : soyFile.getChildren()) {
       SoytreeUtils.execOnAllV2Exprs(template, fieldImportsVisitor);
-      if (template.getParams() == null) {
-        continue;
-      }
-      for (TemplateParam param : template.getParams()) {
+      for (TemplateParam param : template.getAllParams()) {
         if (param.declLoc() != TemplateParam.DeclLoc.HEADER) {
           continue;
         }

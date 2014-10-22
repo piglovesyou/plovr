@@ -24,7 +24,6 @@ import junit.framework.TestCase;
 /**
  * Unit tests for SanitizedContents utility class.
  *
- * @author Garrett Boyer
  */
 public class SanitizedContentsTest extends TestCase {
 
@@ -152,7 +151,5 @@ public class SanitizedContentsTest extends TestCase {
 
     assertNull(SanitizedContents.getDefaultDir(ContentKind.TEXT));
     assertNull(SanitizedContents.getDefaultDir(ContentKind.HTML));
-    assertNull(SanitizedContents.getDefaultDir(ContentKind.JS_STR_CHARS));
   }
-
 }

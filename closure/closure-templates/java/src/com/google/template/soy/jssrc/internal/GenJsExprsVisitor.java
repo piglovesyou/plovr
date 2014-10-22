@@ -57,7 +57,6 @@ import java.util.Map;
  *
  * <p> Precondition: MsgNode should not exist in the tree.
  *
- * @author Kai Huang
  */
 public class GenJsExprsVisitor extends AbstractSoyNodeVisitor<List<JsExpr>> {
 
@@ -269,7 +268,9 @@ public class GenJsExprsVisitor extends AbstractSoyNodeVisitor<List<JsExpr>> {
    * </pre>
    */
   @Override protected void visitXidNode(XidNode node) {
-    jsExprs.add(new JsExpr("xid('" + node.getText() + "')", Integer.MAX_VALUE));
+    String xid = node.getText();
+    String js = "xid('" + xid + "')";
+    jsExprs.add(new JsExpr(js, Integer.MAX_VALUE));
   }
 
 

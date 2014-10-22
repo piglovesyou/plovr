@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.InputSupplier;
+import com.google.common.io.CharSource;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -34,6 +34,7 @@ import com.google.template.soy.base.internal.SoyFileKind;
 import com.google.template.soy.base.internal.SoyFileSupplier;
 import com.google.template.soy.base.internal.VolatileSoyFileSupplier;
 import com.google.template.soy.basetree.SyntaxVersion;
+import com.google.template.soy.conformance.CheckConformance;
 import com.google.template.soy.jssrc.SoyJsSrcOptions;
 import com.google.template.soy.jssrc.internal.JsSrcMain;
 import com.google.template.soy.msgs.SoyMsgBundle;
@@ -58,6 +59,7 @@ import com.google.template.soy.shared.internal.MainEntryPointUtils;
 import com.google.template.soy.sharedpasses.AssertNoExternalCallsVisitor;
 import com.google.template.soy.sharedpasses.ClearSoyDocStringsVisitor;
 import com.google.template.soy.sharedpasses.FindTransitiveDepTemplatesVisitor;
+import com.google.template.soy.sharedpasses.ResolvePackageRelativeCssNamesVisitor;
 import com.google.template.soy.sharedpasses.FindTransitiveDepTemplatesVisitor.TransitiveDepTemplatesInfo;
 import com.google.template.soy.sharedpasses.SubstituteGlobalsVisitor;
 import com.google.template.soy.sharedpasses.opti.SimplifyVisitor;
@@ -66,6 +68,7 @@ import com.google.template.soy.soytree.SoyFileNode;
 import com.google.template.soy.soytree.SoyFileSetNode;
 import com.google.template.soy.soytree.TemplateDelegateNode;
 import com.google.template.soy.soytree.TemplateNode;
+import com.google.template.soy.soytree.Visibility;
 import com.google.template.soy.tofu.SoyTofu;
 import com.google.template.soy.tofu.SoyTofuOptions;
 import com.google.template.soy.tofu.internal.BaseTofu.BaseTofuFactory;
@@ -77,7 +80,6 @@ import com.google.template.soy.xliffmsgplugin.XliffMsgPlugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +93,6 @@ import javax.annotation.Nullable;
  *
  * <p> Note: Soy file (or resource) contents must be encoded in UTF-8.
  *
- * @author Kai Huang
  */
 public final class SoyFileSet {
 
@@ -205,31 +206,31 @@ public final class SoyFileSet {
 
 
     /**
-     * Adds an input Soy file, given an {@code InputSupplier} for the file content, as well as the
+     * Adds an input Soy file, given a {@code CharSource} for the file content, as well as the
      * desired file path for messages.
      *
-     * @param contentSupplier Supplier of a Reader for the Soy file content.
+     * @param contentSource Source for the Soy file content.
      * @param soyFileKind The kind of this input Soy file.
      * @param filePath The path to the Soy file (used for messages only).
      * @return This builder.
      */
     public Builder addWithKind(
-        InputSupplier<? extends Reader> contentSupplier, SoyFileKind soyFileKind, String filePath) {
-      setBuilder.add(SoyFileSupplier.Factory.create(contentSupplier, soyFileKind, filePath));
+        CharSource contentSource, SoyFileKind soyFileKind, String filePath) {
+      setBuilder.add(SoyFileSupplier.Factory.create(contentSource, soyFileKind, filePath));
       return this;
     }
 
 
     /**
-     * Adds an input Soy file, given an {@code InputSupplier} for the file content, as well as the
+     * Adds an input Soy file, given a {@code CharSource} for the file content, as well as the
      * desired file path for messages.
      *
-     * @param contentSupplier Supplier of a Reader for the Soy file content.
+     * @param contentSource Source for the Soy file content.
      * @param filePath The path to the Soy file (used for messages only).
      * @return This builder.
      */
-    public Builder add(InputSupplier<? extends Reader> contentSupplier, String filePath) {
-      return addWithKind(contentSupplier, SoyFileKind.SRC, filePath);
+    public Builder add(CharSource contentSource, String filePath) {
+      return addWithKind(contentSource, SoyFileKind.SRC, filePath);
     }
 
 
@@ -575,6 +576,8 @@ public final class SoyFileSet {
   /** The general compiler options. */
   private final SoyGeneralOptions generalOptions;
 
+  private CheckConformance checkConformance;
+
   /** For private use by pruneTranslatedMsgs(). */
   private ImmutableSet<Long> memoizedExtractedMsgIdsForPruning;
 
@@ -634,6 +637,11 @@ public final class SoyFileSet {
     this.msgBundleHandlerProvider = msgBundleHandlerProvider;
   }
 
+  @Inject(optional = true)
+  void setCheckConformance(CheckConformance checkConformance) {
+    this.checkConformance = checkConformance;
+  }
+
   /** Returns the list of suppliers for the input Soy files. For testing use only! */
   @VisibleForTesting List<SoyFileSupplier> getSoyFileSuppliersForTesting() {
     return soyFileSuppliers;
@@ -664,6 +672,9 @@ public final class SoyFileSet {
     SoyFileSetNode soyTree =
         (new SoyFileSetParser(typeRegistry, cache, declaredSyntaxVersion, soyFileSuppliers))
             .parse();
+
+    // Do renaming of package-relative class names.
+    new ResolvePackageRelativeCssNamesVisitor().exec(soyTree);
 
     return (new GenerateParseInfoVisitor(javaPackage, javaClassNameSource)).exec(soyTree);
   }
@@ -724,7 +735,7 @@ public final class SoyFileSet {
       List<TemplateNode> allPublicTemplates = Lists.newArrayList();
       for (SoyFileNode soyFile : soyTree.getChildren()) {
         for (TemplateNode template : soyFile.getChildren()) {
-          if (! template.isPrivate()) {
+          if (template.getVisibility() == Visibility.PUBLIC) {
             allPublicTemplates.add(template);
           }
         }
@@ -972,9 +983,20 @@ public final class SoyFileSet {
     // need to be injected, and that feels like overkill at this time.
     checkFunctionCallsVisitorFactory.create(declaredSyntaxVersion).exec(soyTree);
 
+    // Do renaming of package-relative class names.
+    new ResolvePackageRelativeCssNamesVisitor().exec(soyTree);
+
     // If disallowing external calls, perform the check.
     if (generalOptions.allowExternalCalls() == Boolean.FALSE) {
       (new AssertNoExternalCallsVisitor()).exec(soyTree);
+    }
+
+    if (checkConformance != null) {
+      ImmutableList<SoySyntaxException> violations = checkConformance.getViolations(soyTree);
+      if (!violations.isEmpty()) {
+        // TODO(brndn): merge all violations into one, instead of just showing the first.
+        throw violations.get(0);
+      }
     }
 
     // Handle CSS commands (if not backend-specific) and substitute compile-time globals.

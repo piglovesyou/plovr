@@ -43,7 +43,6 @@ import javax.annotation.Nullable;
  *
  * <p> Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public class SharedTestUtils {
 
@@ -203,7 +202,7 @@ public class SharedTestUtils {
 
     StringBuilder soyFileContentBuilder = new StringBuilder();
     soyFileContentBuilder
-        .append("{namespace " + namespace + "}\n")
+        .append("{namespace " + namespace + " autoescape=\"deprecated-noncontextual\"}\n")
         .append("\n")
         .append("/** Test template.");
     if (soyDocParamNames != null) {
@@ -241,6 +240,40 @@ public class SharedTestUtils {
   public static SoyFileSetNode parseSoyFiles(
       boolean doRunInitialParsingPasses, String... soyFileContents) {
     return parseSoyFiles(SyntaxVersion.V2_0, doRunInitialParsingPasses, soyFileContents);
+  }
+
+  /**
+   * Parses the given strings as the contents of Soy files.
+   *
+   * @param doRunInitialParsingPasses Whether to run initial parsing passes.
+   * @param soyFileSuppliers The contents of the Soy files to parse.
+   * @return The resulting Soy tree.
+   */
+  public static SoyFileSetNode parseSoyFiles(
+      boolean doRunInitialParsingPasses, SoyFileSupplier... soyFileSuppliers) {
+    return new SoyFileSetParser(
+        new SoyTypeRegistry(), null /* astCache */, SyntaxVersion.V2_0, soyFileSuppliers)
+        .setDoRunInitialParsingPasses(doRunInitialParsingPasses)
+        .setDoRunCheckingPasses(false)
+        .parse();
+  }
+
+  /**
+   * Parses the given strings as the contents of Soy files.
+   *
+   * @param doRunInitialParsingPasses Whether to run initial parsing passes.
+   * @param doRunCheckingPasses Whether to run checking passes.
+   * @param soyFileContents The contents of the Soy files to parse.
+   * @return The resulting Soy tree.
+   */
+  public static SoyFileSetNode parseSoyFiles(
+      boolean doRunInitialParsingPasses, boolean doRunCheckingPasses, String... soyFileContents) {
+    List<SoyFileSupplier> soyFileSuppliers = buildTestSoyFileSuppliers(soyFileContents);
+    return new SoyFileSetParser(
+        new SoyTypeRegistry(), null /* astCache */, SyntaxVersion.V2_0, soyFileSuppliers)
+        .setDoRunInitialParsingPasses(doRunInitialParsingPasses)
+        .setDoRunCheckingPasses(doRunCheckingPasses)
+        .parse();
   }
 
 

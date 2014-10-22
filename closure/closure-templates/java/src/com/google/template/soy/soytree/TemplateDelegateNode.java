@@ -16,13 +16,10 @@
 
 package com.google.template.soy.soytree;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.template.soy.base.SoySyntaxException;
 import com.google.template.soy.base.internal.BaseUtils;
-import com.google.template.soy.basetree.SyntaxVersionBound;
-import com.google.template.soy.data.SanitizedContent.ContentKind;
 import com.google.template.soy.exprtree.ExprNode;
 import com.google.template.soy.exprtree.ExprRootNode;
 import com.google.template.soy.exprtree.GlobalNode;
@@ -32,8 +29,7 @@ import com.google.template.soy.soytree.SoyNode.ExprHolderNode;
 import com.google.template.soy.soytree.defn.TemplateParam;
 
 import java.util.List;
-
-import javax.annotation.Nullable;
+import java.util.Objects;
 
 
 /**
@@ -41,10 +37,8 @@ import javax.annotation.Nullable;
  *
  * <p>Important: Do not use outside of Soy code (treat as superpackage-private).
  *
- * @author Kai Huang
  */
 public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode {
-
 
   /**
    * Value class for a delegate template key (name and variant).
@@ -79,13 +73,13 @@ public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode
         return false;
       }
       DelTemplateKey otherKey = (DelTemplateKey) other;
-      return Objects.equal(this.name, otherKey.name) &&
-          Objects.equal(this.variant, otherKey.variant) &&
-          Objects.equal(this.variantExpr, otherKey.variantExpr);
+      return Objects.equals(this.name, otherKey.name) &&
+          Objects.equals(this.variant, otherKey.variant) &&
+          Objects.equals(this.variantExpr, otherKey.variantExpr);
     }
 
     @Override public int hashCode() {
-      return Objects.hashCode(name, variant, variantExpr);
+      return Objects.hash(name, variant, variantExpr);
     }
 
     @Override public String toString() {
@@ -94,7 +88,6 @@ public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode
               "" : ":" + variantExpr);
     }
   }
-
 
   /** The delegate template name. */
   private final String delTemplateName;
@@ -111,51 +104,34 @@ public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode
   /** The delegate priority. */
   private final int delPriority;
 
-
   /**
    * Main constructor. This is package-private because TemplateDelegateNode instances should be
    * built using TemplateDelegateNodeBuilder.
    *
-   * @param id The id for this node.
-   * @param syntaxVersionBound The lowest known upper bound (exclusive!) for the syntax version of
-   *     this node.
-   * @param cmdText The command text.
+   * @param nodeBuilder Builder containing template initialization params.
    * @param soyFileHeaderInfo Info from the containing Soy file's header declarations.
    * @param delTemplateName The delegate template name.
    * @param delTemplateVariant The delegate template variant.
    * @param delTemplateVariantExpr An expression that references a delegate template variant.
    * @param delTemplateKey The delegate template key (name and variant).
    * @param delPriority The delegate priority.
-   * @param templateName This template's name.
-   * @param partialTemplateName This template's partial name. Only applicable for V2; null for V1.
-   * @param templateNameForUserMsgs A string suitable for display in user msgs as the template name.
-   * @param autoescapeMode The mode of autoescaping for this template.
-   * @param contentKind Strict mode context. Nonnull iff autoescapeMode is strict.
-   * @param requiredCssNamespaces CSS namespaces required to render the template.
-   * @param soyDoc The full SoyDoc, including the start/end tokens, or null.
-   * @param soyDocDesc The description portion of the SoyDoc (before declarations), or null.
    * @param params The params from template header or SoyDoc. Null if no decls and no SoyDoc.
    */
   TemplateDelegateNode(
-      int id, @Nullable SyntaxVersionBound syntaxVersionBound, String cmdText,
+      TemplateDelegateNodeBuilder nodeBuilder,
       SoyFileHeaderInfo soyFileHeaderInfo, String delTemplateName, String delTemplateVariant,
       ExprRootNode<?> delTemplateVariantExpr, DelTemplateKey delTemplateKey, int delPriority,
-      String templateName, @Nullable String partialTemplateName, String templateNameForUserMsgs,
-      AutoescapeMode autoescapeMode, ContentKind contentKind,
-      ImmutableList<String> requiredCssNamespaces, String soyDoc, String soyDocDesc,
       ImmutableList<TemplateParam> params) {
 
-    super(
-        id, syntaxVersionBound, "deltemplate", cmdText, soyFileHeaderInfo, templateName,
-        partialTemplateName, templateNameForUserMsgs, false /*deltemplate is never private*/,
-        autoescapeMode, contentKind, requiredCssNamespaces, soyDoc, soyDocDesc, params);
+    super(nodeBuilder, "deltemplate", soyFileHeaderInfo,
+        Visibility.PUBLIC /* deltemplate always has public visibility */,
+        params);
     this.delTemplateName = delTemplateName;
     this.delTemplateVariant = delTemplateVariant;
     this.delTemplateVariantExpr = delTemplateVariantExpr;
     this.delTemplateKey = delTemplateKey;
     this.delPriority = delPriority;
   }
-
 
   /**
    * Copy constructor.
@@ -226,7 +202,6 @@ public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode
     return ImmutableList.of(new ExprUnion(delTemplateVariantExpr));
   }
 
-
   /**
    * When a variant value is not defined at parsing time (e.g. when a global constant is used) the
    * deltemplate variant and deltemplate key fields in this node have null value. To fetch their
@@ -272,5 +247,4 @@ public class TemplateDelegateNode extends TemplateNode implements ExprHolderNode
     return new AssertionError("Invalid expression for deltemplate variant for " + delTemplateName
         + " template");
   }
-
 }

@@ -18,7 +18,6 @@ package com.google.template.soy.i18ndirectives;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.template.soy.base.SoySyntaxException;
 import com.google.template.soy.data.SoyValue;
@@ -37,6 +36,7 @@ import com.ibm.icu.util.ULocale;
 import java.util.List;
 import java.util.Set;
 
+import javax.inject.Inject;
 
 /**
  * A directive that formats an input number based on Locale of the current SoyMsgBundle.
@@ -54,7 +54,6 @@ import java.util.Set;
        {$value|formatNum:'decimal','native'}
    }
  *
- * @author Jeff Craig
  */
 class FormatNumDirective implements SoyJavaPrintDirective, SoyLibraryAssistedJsSrcPrintDirective {
 
@@ -110,7 +109,8 @@ class FormatNumDirective implements SoyJavaPrintDirective, SoyLibraryAssistedJsS
 
 
   @Override public SoyValue applyForJava(SoyValue value, List<SoyValue> args) {
-    ULocale uLocale = I18nUtils.parseULocale(localeStringProvider.get());
+    ULocale uLocale = I18nUtils.parseULocale(localeStringProvider.get())
+        .setKeywordValue("numbers", "local");
     if (args.size() > 1) {
       // A keyword for ULocale was passed (like 'native', for instance, to use native characters).
       uLocale = uLocale.setKeywordValue("numbers", args.get(1).stringValue());

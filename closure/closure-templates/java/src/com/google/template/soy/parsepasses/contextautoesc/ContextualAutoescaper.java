@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.inject.Inject;
 import com.google.template.soy.data.SanitizedContent;
 import com.google.template.soy.data.SanitizedContentOperator;
 import com.google.template.soy.shared.restricted.SoyPrintDirective;
@@ -32,11 +31,14 @@ import com.google.template.soy.soytree.SoyFileSetNode;
 import com.google.template.soy.soytree.TemplateBasicNode;
 import com.google.template.soy.soytree.TemplateDelegateNode;
 import com.google.template.soy.soytree.TemplateNode;
+import com.google.template.soy.soytree.Visibility;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.inject.Inject;
 
 /**
  * Inserts directives into print commands by looking at the context in which a print appears, and
@@ -56,7 +58,6 @@ import java.util.Set;
  * {/template}
  * </xmp>
  *
- * @author Mike Samuel
  */
 public final class ContextualAutoescaper {
 
@@ -249,7 +250,7 @@ public final class ContextualAutoescaper {
           // templates.
           return templateNode.getAutoescapeMode() == AutoescapeMode.STRICT ||
               (templateNode.getAutoescapeMode() == AutoescapeMode.CONTEXTUAL &&
-                  !templateNode.isPrivate());
+                  templateNode.getVisibility() != Visibility.LEGACY_PRIVATE);
         }
   };
 

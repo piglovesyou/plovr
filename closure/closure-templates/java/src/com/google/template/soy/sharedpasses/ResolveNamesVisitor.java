@@ -49,10 +49,8 @@ import java.util.Map;
  * Visitor which resolves all variable and parameter references to point to
  * the corresponding declaration object.
  *
- * @author Talin
  */
 public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
-
 
   /**
    * Represents a naming scope in which variables are defined.
@@ -104,7 +102,6 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     }
   }
 
-
   /** The current innermost scope. */
   private Scope currentScope = null;
 
@@ -117,33 +114,29 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
   /** User-declared syntax version. */
   private final SyntaxVersion declaredSyntaxVersion;
 
-
   public ResolveNamesVisitor(SyntaxVersion declaredSyntaxVersion) {
     this.paramScope = null;
     this.injectedParamScope = null;
     this.declaredSyntaxVersion = declaredSyntaxVersion;
   }
 
-
   @Override protected void visitTemplateNode(TemplateNode node) {
     Scope savedScope = currentScope;
     // Create a scope for all parameters.
     currentScope = new Scope(savedScope);
     paramScope = currentScope;
-    if (node.getParams() != null) {
-      for (TemplateParam param : node.getParams()) {
-        currentScope.define(param);
-      }
+
+    // Add both injected and regular params to the param scope.
+    for (TemplateParam param : node.getAllParams()) {
+      currentScope.define(param);
     }
 
     visitSoyNode(node);
   }
 
-
   @Override protected void visitPrintNode(PrintNode node) {
     visitSoyNode(node);
   }
-
 
   @Override protected void visitLetValueNode(LetValueNode node) {
     visitSoyNode(node);
@@ -153,14 +146,12 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     currentScope.define(node.getVar());
   }
 
-
   @Override protected void visitLetContentNode(LetContentNode node) {
     visitSoyNode(node);
 
     // Now after the let-block is complete, define the new variable in the current scope.
     currentScope.define(node.getVar());
   }
-
 
   @Override protected void visitForNode(ForNode node) {
     // Visit the range expressions.
@@ -175,7 +166,6 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     currentScope = savedScope;
   }
 
-
   @Override protected void visitForeachNonemptyNode(ForeachNonemptyNode node) {
     // Visit the foreach iterator expression
     visitExpressions(node.getParent());
@@ -188,7 +178,6 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     visitChildren(node);
     currentScope = savedScope;
   }
-
 
   @Override protected void visitSoyNode(SoyNode node) {
     if (node instanceof ExprHolderNode) {
@@ -207,7 +196,6 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     }
   }
 
-
   private void visitExpressions(ExprHolderNode node) {
     ResolveNamesExprVisitor exprVisitor = new ResolveNamesExprVisitor(node);
     for (ExprUnion exprUnion : node.getAllExprUnions()) {
@@ -217,10 +205,8 @@ public final class ResolveNamesVisitor extends AbstractSoyNodeVisitor<Void> {
     }
   }
 
-
   // -----------------------------------------------------------------------------------------------
   // Expr visitor.
-
 
   /**
    * Visitor which resolves all variable and parameter references in expressions

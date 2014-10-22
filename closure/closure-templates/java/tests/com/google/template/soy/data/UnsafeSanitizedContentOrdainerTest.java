@@ -24,7 +24,6 @@ import junit.framework.TestCase;
 /**
  * Unit tests for UnsafeSanitizedContentOrdainer utility class.
  *
- * @author Aharon Lanin
  */
 public class UnsafeSanitizedContentOrdainerTest extends TestCase {
 
@@ -33,12 +32,8 @@ public class UnsafeSanitizedContentOrdainerTest extends TestCase {
         new SanitizedContent("Hello World", ContentKind.TEXT, null),
         UnsafeSanitizedContentOrdainer.ordainAsSafe("Hello World", ContentKind.TEXT));
     assertEquals(
-        new SanitizedContent("Hello\\'s World", ContentKind.JS_STR_CHARS, null),
-        UnsafeSanitizedContentOrdainer.ordainAsSafe("Hello\\'s World", ContentKind.JS_STR_CHARS));
-    assertEquals(
         new SanitizedContent("Hello <b>World</b>", ContentKind.HTML, null),
         UnsafeSanitizedContentOrdainer.ordainAsSafe("Hello <b>World</b>", ContentKind.HTML));
-
     assertEquals(
         new SanitizedContent("hello_world();", ContentKind.JS, Dir.LTR),
         UnsafeSanitizedContentOrdainer.ordainAsSafe("hello_world();", ContentKind.JS));

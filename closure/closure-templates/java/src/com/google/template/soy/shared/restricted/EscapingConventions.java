@@ -48,7 +48,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
  * Escaping functions are exposed as {@link Escaper}s in Java and via a JavaScript code
  * generating ant task for JavaScript.
  *
- * @author Mike Samuel
  */
 @ParametersAreNonnullByDefault
 public final class EscapingConventions {
@@ -520,13 +519,12 @@ public final class EscapingConventions {
           .build();
     }
 
-    // TODO(user): enable goog.string.htmlEscape after it escapes single quotes.
-    /*@Override public List<String> getLangFunctionNames(String language) {
-      if (language == "JavaScript") {
+    @Override public List<String> getLangFunctionNames(EscapingLanguage language) {
+      if (language == EscapingLanguage.JAVASCRIPT) {
         return ImmutableList.<String>of("goog.string.htmlEscape");
       }
       return super.getLangFunctionNames(language);
-    }*/
+    }
   }
 
 
@@ -931,7 +929,7 @@ public final class EscapingConventions {
       // Disallows any protocol that is not in a whitelist.
       // The below passes if there is
       // (1) Either a protocol in a whitelist (http, https, mailto).  This could be expanded but
-      //     talk to your friendly local security-team@ first.
+      //     talk to your friendly local ise-team@ first.
       // (2) or no protocol.  A protocol must be followed by a colon.  The below allows that by
       //     allowing colons only after one of the characters [/?#].
       //     A colon after a hash (#) must be in the fragment.
@@ -946,9 +944,17 @@ public final class EscapingConventions {
       // It also disallows HTML entities in the first path part of a relative path,
       // e.g. "foo&lt;bar/baz".  Our existing escaping functions should not produce that.
       // More importantly, it disallows masking of a colon, e.g. "javascript&#58;...".
+      //
+      // Also Rejects paths with the following properties:
+      // (3) paths containing /../
+      // (4) paths ending in /..
       super(
           Pattern.compile(
-              "^(?:(?:https?|mailto):|[^&:\\/?#]*(?:[\\/?#]|\\z))", Pattern.CASE_INSENSITIVE),
+              "^" +
+              // Reject case (3) and (4)
+              "(?![^#?]*/(?:\\.|%2E){2}(?:[/?#]|\\z))" +
+              // Accept cases (1) and (2)
+              "(?:(?:https?|mailto):|[^&:/?#]*(?:[/?#]|\\z))", Pattern.CASE_INSENSITIVE),
           null);
     }
 
@@ -1082,10 +1088,10 @@ public final class EscapingConventions {
     private FilterHtmlElementName() {
       super(
           Pattern.compile(
-              "^" +
+              "^"
               // Disallow special element names.
-              "(?!script|style|title|textarea|xmp|no)" +
-              "[a-z0-9_$:-]*\\z",
+              + "(?!script|style|title|textarea|xmp|no)"
+              + "[a-z0-9_$:-]*\\z",
               Pattern.CASE_INSENSITIVE),
           null);
     }

@@ -18,7 +18,6 @@ package com.google.template.soy.basicfunctions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.template.soy.data.SanitizedContent;
 import com.google.template.soy.data.SoyValue;
@@ -33,6 +32,7 @@ import com.google.template.soy.shared.restricted.SoyPureFunction;
 import java.util.List;
 import java.util.Set;
 
+import javax.inject.Inject;
 
 /**
  * A function that determines the length of a string.
@@ -40,7 +40,6 @@ import java.util.Set;
  * <p><code>strLen(expr1)</code> requires <code>expr1</code> to be of type
  * string or {@link com.google.template.soy.data.SanitizedContent}.
  *
- * @author Christian Czekay
  */
 @Singleton
 @SoyPureFunction

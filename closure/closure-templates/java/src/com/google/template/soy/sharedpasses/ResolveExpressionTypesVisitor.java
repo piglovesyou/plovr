@@ -96,7 +96,6 @@ import javax.annotation.Nullable;
 /**
  * Visitor which resolves all expression types.
  *
- * @author Talin
  */
 public final class ResolveExpressionTypesVisitor extends AbstractSoyNodeVisitor<Void> {
 
@@ -163,7 +162,6 @@ public final class ResolveExpressionTypesVisitor extends AbstractSoyNodeVisitor<
         case URI:
           varType = SanitizedType.UriType.getInstance();
           break;
-        case JS_STR_CHARS:
         case TEXT:
         default:
           break;

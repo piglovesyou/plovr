@@ -44,8 +44,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 /**
  * Abstract class for generating code relied upon by escaping directives.
  *
- * @author Mike Samuel
- * @author David Phillips
  */
 @ParametersAreNonnullByDefault
 public abstract class AbstractGenerateSoyEscapingDirectiveCode extends Task {
@@ -232,7 +230,6 @@ public abstract class AbstractGenerateSoyEscapingDirectiveCode extends Task {
             sb.append(line).append('\n');
           }
         }
-        sb.append('\n');
       } catch (IOException ex) {
         System.err.println("Failed to read " + input.file);
         ex.printStackTrace();
@@ -292,7 +289,7 @@ public abstract class AbstractGenerateSoyEscapingDirectiveCode extends Task {
   @VisibleForTesting
   void generateCode(Predicate<String> availableIdentifiers, StringBuilder outputCode) {
 
-    outputCode.append('\n').append(GENERATED_CODE_START_MARKER).append('\n');
+    outputCode.append(GENERATED_CODE_START_MARKER).append('\n');
 
 
     // First we collect all the side tables.
@@ -333,7 +330,7 @@ public abstract class AbstractGenerateSoyEscapingDirectiveCode extends Task {
       int escapesVar = -1;
       int matcherVar = -1;
       if (!escaper.getEscapes().isEmpty()) {
-        Map<Character, String> escapeMap = Maps.newLinkedHashMap();
+        Map<Character, String> escapeMap = Maps.newTreeMap();
         StringBuilder matcherRegexBuf = new StringBuilder(getRegexStart() + "[");
         int lastCodeUnit = Integer.MIN_VALUE;
         int rangeStart = Integer.MIN_VALUE;
