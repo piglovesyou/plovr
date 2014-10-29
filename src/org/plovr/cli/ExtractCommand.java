@@ -13,7 +13,6 @@ import org.plovr.ConfigParser;
 import org.plovr.JsInput;
 import org.plovr.Manifest;
 
-import com.google.common.io.CharStreams;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
 import com.google.template.soy.SoyFileSet;
@@ -82,13 +81,7 @@ public class ExtractCommand extends AbstractCommandRunner<ExtractCommandOptions>
     SoyMsgPlugin msgPlugin = new XliffMsgPlugin();
     CharSequence seq = msgPlugin.generateExtractedMsgsFile(msgBundle,
         soyOutputFileOptions);
-    OutputSupplier<PrintStream> out = new OutputSupplier<PrintStream>() {
-      @Override
-      public PrintStream getOutput() throws IOException {
-        return System.out;
-      }
-    };
-    CharStreams.write(seq, out);
+    System.out.append(seq);
   }
 
 }
